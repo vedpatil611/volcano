@@ -4,7 +4,6 @@ workspace "Volcano"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
--- Include premake5 script in glfw lib
 include "Dependencies/glfw"
 
 project	"volcano"
@@ -60,5 +59,5 @@ project	"volcano"
 		defines { "DEBUG" }
 
 	filter "configurations:Release"
-		defines { "RELEASE" }
 		optimize "On"
+		defines { "RELEASE" }
