@@ -19,7 +19,6 @@ project	"volcano"
 	includedirs { 
 		"Dependencies/glfw/include",
 		"Dependencies/vulkan/Include",
-		"Dependencies/vulkan-hpp",
 		"Dependencies/glm",
 	}
 
