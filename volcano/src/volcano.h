@@ -1,10 +1,29 @@
 #include <vulkan/vulkan.hpp>
 
+#include <vector>
+
 class Volcano
 {
     private:
-        inline static vk::Instance instance;
+        // UniqueInstance destruction is done automatically
+        inline static vk::UniqueInstance instance;
+    #ifdef DEBUG
+        inline static std::vector<const char*> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"
+        };
+        inline static VkDebugUtilsMessengerEXT callback;
+    #endif
     public:
         static void init();
         static void destroy();
+    private:
+        static std::vector<const char*> getRequiredExtensions();
+#ifdef DEBUG
+        static bool checkValidationLayerSupport();
+        static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+                const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+        static VkResult createDebugUtilsMessengerEXT(vk::UniqueInstance& instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pCallback);
+        static void destroyDebugUtilMessengerEXT(vk::UniqueInstance& instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+#endif
 };
