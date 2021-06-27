@@ -6,4 +6,5 @@ class Volcano
         inline static vk::Instance instance;
     public:
         static void init();
+        static void destroy();
 };
