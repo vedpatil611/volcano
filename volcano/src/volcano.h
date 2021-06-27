@@ -1,12 +1,9 @@
 #include <vulkan/vulkan.hpp>
 
-namespace volcano
+class Volcano
 {
-    class Volcano
-    {
-        private:
-            vk::Instance instance;
-        public:
-            void init();
-    };
-}
+    private:
+        inline static vk::Instance instance;
+    public:
+        static void init();
+};

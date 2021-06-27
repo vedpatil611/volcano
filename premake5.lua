@@ -8,9 +8,9 @@ include "Dependencies/glfw"
 
 project	"volcano"
 	location "volcano"
-	kind "StaticLib"
+	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	systemversion "latest"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
