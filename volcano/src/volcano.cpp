@@ -168,6 +168,8 @@ void Volcano::createLogicalDevice()
     {
         throw std::runtime_error("Failed to create logical device");
     }
+
+    graphicsQueue = device->getQueue(indices.graphicsFamily.value(), 0);
 }
 
 bool Volcano::checkValidationLayerSupport()

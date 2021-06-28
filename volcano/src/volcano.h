@@ -18,6 +18,9 @@ class Volcano
         inline static vk::PhysicalDevice physicalDevice;
         // Logical device
         inline static vk::UniqueDevice device;
+        // Graphics queue
+        inline static vk::Queue graphicsQueue;
+
 // Validation layer only exist for debug build
 #ifdef DEBUG
         inline static std::vector<const char*> validationLayers = {
