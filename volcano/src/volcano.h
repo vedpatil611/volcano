@@ -50,6 +50,8 @@ class Volcano
         static void createLogicalDevice();
         // Create surface for graphics rendering
         static void createSurface();
+        // Destroy surface
+        static void destroySurface();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

@@ -70,6 +70,8 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
+    instance->destroySurfaceKHR(surface);
+
 #ifdef DEBUG
     destroyDebugUtilMessengerEXT(instance, callback, nullptr);
 #endif
@@ -181,6 +183,8 @@ void Volcano::createSurface()
     VkSurfaceKHR rawSurface;
     if(glfwCreateWindowSurface(*instance, window->getWindow(), nullptr, &rawSurface) != VK_SUCCESS)
         throw std::runtime_error("Failed to create window surface");
+
+    surface = rawSurface;
 }
 
 bool Volcano::checkValidationLayerSupport()
