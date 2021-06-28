@@ -60,8 +60,8 @@ void Volcano::init()
     }
 #endif
 
-    // Query and select GPU device
     pickPhysicalDevice();
+    createLogicalDevice();
 }
 
 void Volcano::destroy()
@@ -131,6 +131,43 @@ std::vector<const char*> Volcano::getRequiredExtensions()
 #endif
 
     return extensions;
+}
+
+void Volcano::createLogicalDevice()
+{
+    auto indices = findQueueFamily(physicalDevice);
+
+    float queuePriority = 1.0f;
+
+    auto queueCreateInfo = vk::DeviceQueueCreateInfo(
+        vk::DeviceQueueCreateFlags(),
+        indices.graphicsFamily.value(),
+        1,
+        &queuePriority
+    );
+
+    auto deviceFeature = vk::PhysicalDeviceFeatures();
+    auto createInfo = vk::DeviceCreateInfo(
+        vk::DeviceCreateFlags(),
+        1,
+        &queueCreateInfo
+    );
+    createInfo.pEnabledFeatures = &deviceFeature;
+    createInfo.enabledExtensionCount = 0;
+
+#ifdef DEBUG
+    createInfo.enabledLayerCount = validationLayers.size();
+    createInfo.ppEnabledLayerNames = validationLayers.data();
+#endif
+
+    try
+    {
+        device = physicalDevice.createDeviceUnique(createInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create logical device");
+    }
 }
 
 bool Volcano::checkValidationLayerSupport()
