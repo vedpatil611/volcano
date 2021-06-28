@@ -10,6 +10,8 @@ public:
     ~Window();
 
     void pollEvents();
-    bool shouldClose();
+    bool shouldClose() const;
     void swapBuffer();
+
+    inline GLFWwindow* getWindow() const { return m_Window; }
 };

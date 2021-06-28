@@ -3,14 +3,17 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <map>
+#include "window.h"
 
 bool QueueFamilyIndicies::isComplete()
 {
     return graphicsFamily.has_value();
 }
 
-void Volcano::init()
+void Volcano::init(Window* window)
 {
+    Volcano::window = window;
+
     {   // Init vulkan instance
 #ifdef DEBUG
         if(!checkValidationLayerSupport())
@@ -60,6 +63,7 @@ void Volcano::init()
     }
 #endif
 
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
 }
@@ -170,6 +174,13 @@ void Volcano::createLogicalDevice()
     }
 
     graphicsQueue = device->getQueue(indices.graphicsFamily.value(), 0);
+}
+
+void Volcano::createSurface()
+{
+    VkSurfaceKHR rawSurface;
+    if(glfwCreateWindowSurface(*instance, window->getWindow(), nullptr, &rawSurface) != VK_SUCCESS)
+        throw std::runtime_error("Failed to create window surface");
 }
 
 bool Volcano::checkValidationLayerSupport()

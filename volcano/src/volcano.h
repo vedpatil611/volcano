@@ -9,6 +9,8 @@ struct QueueFamilyIndicies
     bool isComplete();
 };
 
+class Window;
+
 class Volcano
 {
     private:
@@ -20,7 +22,10 @@ class Volcano
         inline static vk::UniqueDevice device;
         // Graphics queue
         inline static vk::Queue graphicsQueue;
-
+        // Surface
+        inline static vk::SurfaceKHR surface;
+        // Pointer to window
+        inline static Window* window;
 // Validation layer only exist for debug build
 #ifdef DEBUG
         inline static std::vector<const char*> validationLayers = {
@@ -30,7 +35,7 @@ class Volcano
 #endif
     public:
         // Initalize vulkan instance
-        static void init();
+        static void init(Window* window);
         // Destroy instance
         static void destroy();
     private:
@@ -43,6 +48,8 @@ class Volcano
         static std::vector<const char*> getRequiredExtensions();
         // Initalize logical device
         static void createLogicalDevice();
+        // Create surface for graphics rendering
+        static void createSurface();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

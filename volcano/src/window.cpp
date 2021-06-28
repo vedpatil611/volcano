@@ -32,7 +32,7 @@ void Window::pollEvents()
     glfwPollEvents();
 }
 
-bool Window::shouldClose()
+bool Window::shouldClose() const
 {
     return glfwWindowShouldClose(m_Window);
 }

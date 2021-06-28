@@ -4,7 +4,7 @@
 int main()
 {
     Window window;
-    Volcano::init();
+    Volcano::init(&window);
 
     while(!window.shouldClose())
     {
