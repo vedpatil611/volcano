@@ -2,6 +2,12 @@
 
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <map>
+
+bool QueueFamilyIndicies::isComplete()
+{
+    return graphicsFamily.has_value();
+}
 
 void Volcano::init()
 {
@@ -53,6 +59,9 @@ void Volcano::init()
             throw std::runtime_error("Failed to create debug callback");
     }
 #endif
+
+    // Query and select GPU device
+    pickPhysicalDevice();
 }
 
 void Volcano::destroy()
@@ -60,6 +69,53 @@ void Volcano::destroy()
 #ifdef DEBUG
     destroyDebugUtilMessengerEXT(instance, callback, nullptr);
 #endif
+}
+
+void Volcano::pickPhysicalDevice()
+{
+    auto devices = instance->enumeratePhysicalDevices();
+    if(devices.size() == 0)
+        throw std::runtime_error("Failed to find suitable GPU");
+
+    for(const auto& device : devices)
+    {
+        if(isDeviceSuitable(device))
+        {
+            physicalDevice = device;
+            break;
+        }
+    }
+
+    if(!physicalDevice)
+        throw std::runtime_error("Failed to find suitable GPU");
+}
+
+bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
+{
+    auto indices = findQueueFamily(physicalDevice);
+
+    return indices.isComplete();
+}
+
+
+QueueFamilyIndicies Volcano::findQueueFamily(const vk::PhysicalDevice& physicalDevice)
+{
+    QueueFamilyIndicies indices;
+
+    auto queueFamilies = physicalDevice.getQueueFamilyProperties();
+
+    int i = 0;
+    for(const auto& queueFamily: queueFamilies)
+    {
+        if(queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
+            indices.graphicsFamily = i;
+
+        if(indices.isComplete()) break;
+
+        ++i;
+    }
+
+    return indices;
 }
 
 std::vector<const char*> Volcano::getRequiredExtensions()

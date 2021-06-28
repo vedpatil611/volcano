@@ -1,22 +1,36 @@
+#include <optional>
+#include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include <vector>
+struct QueueFamilyIndicies
+{
+    std::optional<uint32_t> graphicsFamily;
+
+    bool isComplete();
+};
 
 class Volcano
 {
     private:
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
-    #ifdef DEBUG
+        // GPU device
+        inline static vk::PhysicalDevice physicalDevice;
+
+// Validation layer only exist for debug build
+#ifdef DEBUG
         inline static std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
         };
         inline static VkDebugUtilsMessengerEXT callback;
-    #endif
+#endif
     public:
         static void init();
         static void destroy();
     private:
+        static void pickPhysicalDevice();
+        static bool isDeviceSuitable(const vk::PhysicalDevice& device);
+        static QueueFamilyIndicies findQueueFamily(const vk::PhysicalDevice& device);
         static std::vector<const char*> getRequiredExtensions();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
