@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <map>
+#include <set>
 #include "window.h"
 
 bool QueueFamilyIndicies::isComplete()
@@ -100,7 +101,16 @@ bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
 {
     auto indices = findQueueFamily(physicalDevice);
 
-    return indices.isComplete();
+    bool extensionSupport = checkDeviceExtensionsSupport(physicalDevice);
+
+    bool swapChainAdequate = false;
+    if(extensionSupport)
+    {
+        auto swapChainSupport = querySwapChainSupport(physicalDevice);
+        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    }
+
+    return indices.isComplete() && extensionSupport && swapChainAdequate;
 }
 
 
@@ -159,7 +169,8 @@ void Volcano::createLogicalDevice()
         &queueCreateInfo
     );
     createInfo.pEnabledFeatures = &deviceFeature;
-    createInfo.enabledExtensionCount = 0;
+    createInfo.enabledExtensionCount = deviceExtensions.size();
+    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
 #ifdef DEBUG
     createInfo.enabledLayerCount = validationLayers.size();
@@ -185,6 +196,27 @@ void Volcano::createSurface()
         throw std::runtime_error("Failed to create window surface");
 
     surface = rawSurface;
+}
+
+bool Volcano::checkDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice)
+{
+    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+
+    for (const auto& extension : physicalDevice.enumerateDeviceExtensionProperties())
+        requiredExtensions.erase(extension.extensionName);
+
+    return requiredExtensions.empty();
+}
+
+SwapChainSupportDetails Volcano::querySwapChainSupport(const vk::PhysicalDevice& physicalDevice)
+{
+    SwapChainSupportDetails details = {
+        physicalDevice.getSurfaceCapabilitiesKHR(surface),
+        physicalDevice.getSurfaceFormatsKHR(surface),
+        physicalDevice.getSurfacePresentModesKHR(surface)
+    };
+
+    return details;
 }
 
 bool Volcano::checkValidationLayerSupport()
