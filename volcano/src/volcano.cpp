@@ -65,9 +65,10 @@ void Volcano::init(Window* window)
     }
 #endif
 
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
+    Volcano::createSurface();
+    Volcano::pickPhysicalDevice();
+    Volcano::createLogicalDevice();
+    Volcano::createSwapChain();
 }
 
 void Volcano::destroy()
@@ -314,12 +315,19 @@ void Volcano::createSwapChain()
 
     try
     {
+        // create swapchain
         Volcano::swapChain = device->createSwapchainKHR(createInfo);
     }
     catch (vk::SystemError& e)
     {
         throw std::runtime_error("Failed to create swapchain");
     }
+    
+    // Retrive list of swapchain images
+    Volcano::swapChainImages = Volcano::device->getSwapchainImagesKHR(Volcano::swapChain);
+    // Save swapchain image format and extent
+    Volcano::swapChainImageFormat = surfaceFormat.format;
+    Volcano::swapChainExtent = extent;
 }
 
 #ifdef DEBUG

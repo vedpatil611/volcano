@@ -37,6 +37,12 @@ class Volcano
         };
         // Swap chain
         inline static vk::SwapchainKHR swapChain;
+        // List of swap chain images
+        inline static std::vector<vk::Image> swapChainImages;
+        // Swapchain image format
+        inline static vk::Format swapChainImageFormat;
+        // Swapchain image extent
+        inline static vk::Extent2D swapChainExtent;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
