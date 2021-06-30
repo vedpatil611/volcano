@@ -5,7 +5,7 @@
 struct QueueFamilyIndicies
 {
     std::optional<uint32_t> graphicsFamily;
-
+    std::optional<uint32_t> presentFamily;
     bool isComplete();
 };
 
@@ -35,6 +35,8 @@ class Volcano
         inline static const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME         // Swap chain extensions
         };
+        // Swap chain
+        inline static vk::SwapchainKHR swapChain;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
@@ -65,6 +67,14 @@ class Volcano
         static bool checkDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice);
         // Query swap chain support
         static SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& physicalDevice);
+        // Pick appropriate swap surface format
+        static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+        // Pick appropriate swap presentaion mode
+        static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentMode);
+        // Pick swap extent
+        static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+        // Create swapchain
+        static void createSwapChain();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

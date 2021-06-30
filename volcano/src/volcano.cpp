@@ -2,13 +2,14 @@
 
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <set>
 #include "window.h"
 
 bool QueueFamilyIndicies::isComplete()
 {
-    return graphicsFamily.has_value();
+    return graphicsFamily.has_value() && presentFamily.has_value();
 }
 
 void Volcano::init(Window* window)
@@ -123,10 +124,13 @@ QueueFamilyIndicies Volcano::findQueueFamily(const vk::PhysicalDevice& physicalD
     int i = 0;
     for(const auto& queueFamily: queueFamilies)
     {
-        if(queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
+        if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
             indices.graphicsFamily = i;
 
-        if(indices.isComplete()) break;
+        if (queueFamily.queueCount > 0 && physicalDevice.getSurfaceSupportKHR(i, surface))
+            indices.presentFamily = i;
+
+        if (indices.isComplete()) break;
 
         ++i;
     }
@@ -219,8 +223,107 @@ SwapChainSupportDetails Volcano::querySwapChainSupport(const vk::PhysicalDevice&
     return details;
 }
 
-bool Volcano::checkValidationLayerSupport()
+vk::SurfaceFormatKHR Volcano::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
+{
+    if(availableFormats.size() == 1 && availableFormats[0].format == vk::Format::eUndefined)
+        return { vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
+
+    for (const auto& availableFormat : availableFormats)
+    {
+        if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+            return availableFormat;
+    }
+
+    return availableFormats[0];
+}
+
+vk::PresentModeKHR Volcano::chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes)
+{
+    vk::PresentModeKHR bestMode = vk::PresentModeKHR::eFifo;
+
+    for (const auto& availablePresentMode : availablePresentModes)
+    {
+        if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+            return availablePresentMode;
+        else if (availablePresentMode == vk::PresentModeKHR::eImmediate)
+            bestMode = availablePresentMode;
+    }
+
+    return bestMode;
+}
+
+vk::Extent2D Volcano::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities)
+{
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+    {
+        return capabilities.currentExtent;
+    }    
+    else
+    {
+        vk::Extent2D actualExtent = { static_cast<uint32_t>(window->getWidth()), static_cast<uint32_t>(window->getHeight()) };
+        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+
+        return actualExtent;
+    }
+}
+
+void Volcano::createSwapChain()
+{
+    auto swapChainSupport = querySwapChainSupport(Volcano::physicalDevice);
+
+    auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+    auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
+    auto extent = chooseSwapExtent(swapChainSupport.capabilities);
+
+    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+    if (swapChainSupport.capabilities.minImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
+        imageCount = swapChainSupport.capabilities.maxImageCount;
+
+    vk::SwapchainCreateInfoKHR createInfo(
+        vk::SwapchainCreateFlagsKHR(),
+        Volcano::surface,
+        imageCount,
+        surfaceFormat.format,
+        surfaceFormat.colorSpace,
+        extent,
+        1,
+        vk::ImageUsageFlagBits::eColorAttachment
+    );
+
+    auto indices = findQueueFamily(physicalDevice);
+    uint32_t queueFamilyIndicies[] = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+
+    if (indices.graphicsFamily != indices.presentFamily)
+    {
+        createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+        createInfo.queueFamilyIndexCount = 2;
+        createInfo.pQueueFamilyIndices = queueFamilyIndicies;
+    }
+    else
+    {
+        createInfo.imageSharingMode = vk::SharingMode::eExclusive;
+    }
+
+    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    createInfo.presentMode = presentMode;
+    createInfo.clipped = VK_TRUE;
+    
+    createInfo.oldSwapchain = vk::SwapchainKHR(nullptr);
+
+    try
+    {
+        Volcano::swapChain = device->createSwapchainKHR(createInfo);
+    }
+    catch (vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create swapchain");
+    }
+}
+
 #ifdef DEBUG
+bool Volcano::checkValidationLayerSupport()
 {
     auto availableLayers = vk::enumerateInstanceLayerProperties();
     

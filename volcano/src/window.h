@@ -14,4 +14,6 @@ public:
     void swapBuffer();
 
     inline GLFWwindow* getWindow() const { return m_Window; }
+    inline int getWidth() const { return m_Width; }
+    inline int getHeight() const { return m_Height; }
 };
