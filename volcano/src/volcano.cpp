@@ -73,7 +73,8 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
-    instance->destroySurfaceKHR(surface);
+    Volcano::device->destroySwapchainKHR(Volcano::swapChain);
+    Volcano::instance->destroySurfaceKHR(Volcano::surface);
 
 #ifdef DEBUG
     destroyDebugUtilMessengerEXT(instance, callback, nullptr);
