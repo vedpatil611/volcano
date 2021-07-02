@@ -6,7 +6,7 @@ private:
     GLFWwindow* m_Window;
     int m_Width, m_Height;
 public:
-    Window(const char* name = "Volcano", int width = 1920, int height = 1080);
+    Window(const char* name = "Volcano", int width = 800, int height = 800);
     ~Window();
 
     void pollEvents();

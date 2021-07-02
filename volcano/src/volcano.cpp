@@ -5,12 +5,8 @@
 #include <limits>
 #include <map>
 #include <set>
+#include "QueueFamilyIndices.h"
 #include "window.h"
-
-bool QueueFamilyIndicies::isComplete()
-{
-    return graphicsFamily.has_value() && presentFamily.has_value();
-}
 
 void Volcano::init(Window* window)
 {
@@ -24,7 +20,7 @@ void Volcano::init(Window* window)
         vk::ApplicationInfo appInfo;
         appInfo.pApplicationName = "volcano";
         appInfo.pEngineName = "Volcano";
-
+        appInfo.apiVersion = VK_API_VERSION_1_2;
         vk::InstanceCreateInfo instanceInfo;
         instanceInfo.pApplicationInfo = &appInfo;
     
@@ -115,7 +111,6 @@ bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
 
     return indices.isComplete() && extensionSupport && swapChainAdequate;
 }
-
 
 QueueFamilyIndicies Volcano::findQueueFamily(const vk::PhysicalDevice& physicalDevice)
 {

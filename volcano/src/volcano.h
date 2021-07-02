@@ -2,12 +2,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-struct QueueFamilyIndicies
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-    bool isComplete();
-};
+struct QueueFamilyIndicies;
 
 struct SwapChainSupportDetails
 {
@@ -62,6 +57,7 @@ class Volcano
         static void pickPhysicalDevice();
         // Check if GPU device is suitable
         static bool isDeviceSuitable(const vk::PhysicalDevice& device);
+        // Find queue family within gpu device
         static QueueFamilyIndicies findQueueFamily(const vk::PhysicalDevice& device);
         // Get glfw extensions
         static std::vector<const char*> getRequiredExtensions();
