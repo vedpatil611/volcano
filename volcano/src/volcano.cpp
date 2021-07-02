@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
 #include "window.h"
 
@@ -105,7 +106,7 @@ bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
     bool swapChainAdequate = false;
     if(extensionSupport)
     {
-        auto swapChainSupport = querySwapChainSupport(physicalDevice);
+        auto swapChainSupport = SwapChainSupportDetails::queryDetails(physicalDevice, Volcano::surface);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
@@ -196,7 +197,7 @@ void Volcano::createSurface()
     if(glfwCreateWindowSurface(*instance, window->getWindow(), nullptr, &rawSurface) != VK_SUCCESS)
         throw std::runtime_error("Failed to create window surface");
 
-    surface = rawSurface;
+    Volcano::surface = rawSurface;
 }
 
 bool Volcano::checkDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice)
@@ -207,17 +208,6 @@ bool Volcano::checkDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDev
         requiredExtensions.erase(extension.extensionName);
 
     return requiredExtensions.empty();
-}
-
-SwapChainSupportDetails Volcano::querySwapChainSupport(const vk::PhysicalDevice& physicalDevice)
-{
-    SwapChainSupportDetails details = {
-        physicalDevice.getSurfaceCapabilitiesKHR(surface),
-        physicalDevice.getSurfaceFormatsKHR(surface),
-        physicalDevice.getSurfacePresentModesKHR(surface)
-    };
-
-    return details;
 }
 
 vk::SurfaceFormatKHR Volcano::chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats)
@@ -267,7 +257,7 @@ vk::Extent2D Volcano::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabil
 
 void Volcano::createSwapChain()
 {
-    auto swapChainSupport = querySwapChainSupport(Volcano::physicalDevice);
+    auto swapChainSupport = SwapChainSupportDetails::queryDetails(Volcano::physicalDevice, Volcano::surface);
 
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);

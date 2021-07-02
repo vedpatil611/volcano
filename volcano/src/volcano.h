@@ -3,14 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 struct QueueFamilyIndicies;
-
-struct SwapChainSupportDetails
-{
-    vk::SurfaceCapabilitiesKHR capabilities;
-    std::vector<vk::SurfaceFormatKHR> formats;
-    std::vector<vk::PresentModeKHR> presentModes;
-};
-
+struct SwapChainSupportDetails;
 class Window;
 
 class Volcano
@@ -67,8 +60,6 @@ class Volcano
         static void createSurface();
         // Check for extension support
         static bool checkDeviceExtensionsSupport(const vk::PhysicalDevice& physicalDevice);
-        // Query swap chain support
-        static SwapChainSupportDetails querySwapChainSupport(const vk::PhysicalDevice& physicalDevice);
         // Pick appropriate swap surface format
         static vk::SurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
         // Pick appropriate swap presentaion mode
