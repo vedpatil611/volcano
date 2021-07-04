@@ -17,6 +17,8 @@ class Volcano
         inline static vk::UniqueDevice device;
         // Graphics queue
         inline static vk::Queue graphicsQueue;
+        // Presentation queue
+        inline static vk::Queue presentQueue;
         // Surface
         inline static vk::SurfaceKHR surface;
         // List of device extensions

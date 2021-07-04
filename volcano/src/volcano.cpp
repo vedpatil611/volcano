@@ -22,6 +22,7 @@ void Volcano::init(Window* window)
         appInfo.pApplicationName = "volcano";
         appInfo.pEngineName = "Volcano";
         appInfo.apiVersion = VK_API_VERSION_1_2;
+        
         vk::InstanceCreateInfo instanceInfo;
         instanceInfo.pApplicationInfo = &appInfo;
     
@@ -155,20 +156,28 @@ void Volcano::createLogicalDevice()
 {
     auto indices = findQueueFamily(physicalDevice);
 
+    std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+    
     float queuePriority = 1.0f;
 
-    auto queueCreateInfo = vk::DeviceQueueCreateInfo(
-        vk::DeviceQueueCreateFlags(),
-        indices.graphicsFamily.value(),
-        1,
-        &queuePriority
-    );
+    for(uint32_t queueFamily : uniqueQueueFamilies)
+    {
+        auto queueCreateInfo = vk::DeviceQueueCreateInfo(
+            vk::DeviceQueueCreateFlags(),
+            queueFamily,
+            1,
+            &queuePriority
+        );
+
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
 
     auto deviceFeature = vk::PhysicalDeviceFeatures();
     auto createInfo = vk::DeviceCreateInfo(
         vk::DeviceCreateFlags(),
-        1,
-        &queueCreateInfo
+        queueCreateInfos.size(),
+        queueCreateInfos.data()
     );
     createInfo.pEnabledFeatures = &deviceFeature;
     createInfo.enabledExtensionCount = deviceExtensions.size();
@@ -188,15 +197,17 @@ void Volcano::createLogicalDevice()
         throw std::runtime_error("Failed to create logical device");
     }
 
-    graphicsQueue = device->getQueue(indices.graphicsFamily.value(), 0);
+    Volcano::graphicsQueue = device->getQueue(indices.graphicsFamily.value(), 0);
+    Volcano::presentQueue = device->getQueue(indices.presentFamily.value(), 0);
 }
 
 void Volcano::createSurface()
 {
+    // Raw surface of basic c struct style is required because glfw requirement
     VkSurfaceKHR rawSurface;
     if(glfwCreateWindowSurface(*instance, window->getWindow(), nullptr, &rawSurface) != VK_SUCCESS)
         throw std::runtime_error("Failed to create window surface");
-
+    
     Volcano::surface = rawSurface;
 }
 
