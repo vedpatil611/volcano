@@ -3,7 +3,6 @@
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan.hpp>
-
 #include "SwapChainImage.h"
 
 struct QueueFamilyIndicies;

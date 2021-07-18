@@ -16,6 +16,9 @@ project	"volcano"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("intermediate/" .. outputdir .. "/%{prj.name}")
 
+	pchheader "volcano/src/volcanoPCH.h"
+	pchsource "volcano/src/volcanoPCH.cpp"
+
 	includedirs { 
 		"Dependencies/glfw/include",
 		"Dependencies/vulkan/Include",
