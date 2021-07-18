@@ -5,6 +5,7 @@
 #include <limits>
 #include <map>
 #include <set>
+#include "SwapChainImage.h"
 #include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
 #include "window.h"
@@ -71,6 +72,10 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
+    for(auto image: swapChainImages)
+    {
+        Volcano::device->destroyImageView(image.imageView);
+    }
     Volcano::device->destroySwapchainKHR(Volcano::swapChain);
     Volcano::instance->destroySurfaceKHR(Volcano::surface);
 
@@ -270,6 +275,7 @@ void Volcano::createSwapChain()
 {
     auto swapChainSupport = SwapChainSupportDetails::queryDetails(Volcano::physicalDevice, Volcano::surface);
 
+    // Find optimal surface values for swapchain
     auto surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
     auto presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
     auto extent = chooseSwapExtent(swapChainSupport.capabilities);
@@ -313,18 +319,59 @@ void Volcano::createSwapChain()
     try
     {
         // create swapchain
-        Volcano::swapChain = device->createSwapchainKHR(createInfo);
+        Volcano::swapChain = Volcano::device->createSwapchainKHR(createInfo);
     }
     catch (vk::SystemError& e)
     {
         throw std::runtime_error("Failed to create swapchain");
     }
     
-    // Retrive list of swapchain images
-    Volcano::swapChainImages = Volcano::device->getSwapchainImagesKHR(Volcano::swapChain);
     // Save swapchain image format and extent
     Volcano::swapChainImageFormat = surfaceFormat.format;
     Volcano::swapChainExtent = extent;
+
+    // Retrive list of swapchain images
+    auto swapchainImages = Volcano::device->getSwapchainImagesKHR(Volcano::swapChain);
+    for(vk::Image image: swapchainImages)
+    {
+        // Store image handle
+        SwapChainImage swapChainImage = {};
+        swapChainImage.image = image;
+
+        // Create image view
+        swapChainImage.imageView = Volcano::createImageView(image, Volcano::swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
+
+        // Add to swapchain image list
+        swapChainImages.push_back(swapChainImage);
+    }
+}
+
+vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag)
+{
+    vk::ImageViewCreateInfo viewCreateInfo = {};
+    viewCreateInfo.image = image;                                   // Image to create view for
+    viewCreateInfo.viewType = vk::ImageViewType::e2D;                // Type of image
+    viewCreateInfo.format = format;                                 // Format of image data
+    viewCreateInfo.components.r = vk::ComponentSwizzle::eIdentity;  // Allows remaping of rgba components  
+    viewCreateInfo.components.g = vk::ComponentSwizzle::eIdentity;    
+    viewCreateInfo.components.b = vk::ComponentSwizzle::eIdentity;    
+    viewCreateInfo.components.a = vk::ComponentSwizzle::eIdentity;    
+    
+    // Subresources allow the view to view only part of image
+    viewCreateInfo.subresourceRange.aspectMask = aspectFlag;
+    viewCreateInfo.subresourceRange.baseMipLevel = 0;               // Start mipmap level
+    viewCreateInfo.subresourceRange.levelCount = 1;                 // No of mipmap layers
+    viewCreateInfo.subresourceRange.baseArrayLayer = 0;             // Start array level to view from
+    viewCreateInfo.subresourceRange.layerCount = 1;                  // No of array layers
+
+    try 
+    {
+        return Volcano::device->createImageView(viewCreateInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create image view");
+    }
 }
 
 #ifdef DEBUG

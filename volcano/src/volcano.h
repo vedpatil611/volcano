@@ -1,6 +1,10 @@
+#pragma once
+
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+
+#include "SwapChainImage.h"
 
 struct QueueFamilyIndicies;
 struct SwapChainSupportDetails;
@@ -28,7 +32,7 @@ class Volcano
         // Swap chain
         inline static vk::SwapchainKHR swapChain;
         // List of swap chain images
-        inline static std::vector<vk::Image> swapChainImages;
+        inline static std::vector<SwapChainImage> swapChainImages;
         // Swapchain image format
         inline static vk::Format swapChainImageFormat;
         // Swapchain image extent
@@ -70,6 +74,8 @@ class Volcano
         static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
         // Create swapchain
         static void createSwapChain();
+        // Create image view
+        static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
