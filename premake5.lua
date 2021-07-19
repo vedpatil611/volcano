@@ -55,7 +55,10 @@ project	"volcano"
 			"Xxf86vm",
 			"vulkan"
 		}
-
+		postbuildcommands {
+			("./compile_shaders.sh"),
+			("cp -r ./shaders/ ../bin/" .. outputdir .. "/%{prj.name}")
+		}
 	filter "configurations:Debug"
 		symbols "On"
 		defines { "DEBUG" }
