@@ -5,20 +5,20 @@
 
 namespace utils
 {
-    char* readFile(const char* filename)
+    std::vector<char> readFile(const char* filename)
     {
         std::ifstream file(filename, std::ios::binary | std::ios::ate);
         if(!file.is_open())
             throw std::runtime_error("Failed to open file");
 
         size_t fileSize = file.tellg();
-        char* fileData = new char[fileSize];
+        std::vector<char> buffer(fileSize);
 
         // seek to start of file
         file.seekg(0);
-        file.read(fileData, fileSize);
+        file.read(buffer.data(), fileSize);
         file.close();
 
-        return fileData;
+        return buffer;
     }
 }

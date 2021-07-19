@@ -75,6 +75,10 @@ class Volcano
         static void createSwapChain();
         // Create image view
         static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
+
+        static void createGraphicsPipeline();
+        // Create shader modules
+        static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

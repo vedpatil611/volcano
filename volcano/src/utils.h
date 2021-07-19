@@ -1,4 +1,6 @@
+#include <vector>
+
 namespace utils
 {
-    char* readFile(const char* filename);
+    std::vector<char> readFile(const char* filename);
 }

@@ -9,6 +9,7 @@
 #include "SwapChainImage.h"
 #include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
+#include "utils.h"
 #include "window.h"
 
 void Volcano::init(Window* window)
@@ -69,6 +70,7 @@ void Volcano::init(Window* window)
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
     Volcano::createSwapChain();
+    Volcano::createGraphicsPipeline();
 }
 
 void Volcano::destroy()
@@ -372,6 +374,52 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
     catch(vk::SystemError& e)
     {
         throw std::runtime_error("Failed to create image view");
+    }
+}
+
+void Volcano::createGraphicsPipeline()
+{
+    // read compiled code
+    auto vsCode = utils::readFile("shaders/vert.spv");
+    auto fsCode = utils::readFile("shaders/frag.spv");
+
+    // create shader modules for pipeline
+    auto vertShaderModule = Volcano::createShaderModule(vsCode);
+    auto fragShaderModule = Volcano::createShaderModule(fsCode);
+
+    // Pipeline info
+    vk::PipelineShaderStageCreateInfo shaderStages[] = {
+        {
+            vk::PipelineShaderStageCreateFlags(),
+            vk::ShaderStageFlagBits::eVertex,       // Vertex shader
+            *vertShaderModule,                      // reference to module
+            "main"                                  // Start at main function
+        },
+        {
+            vk::PipelineShaderStageCreateFlags(),
+            vk::ShaderStageFlagBits::eFragment,     // Fragment shader
+            *vertShaderModule,
+            "main"
+        }
+    };
+
+    // Unique shader modules automatically destroys after pipeline creation
+}
+
+vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code)
+{
+    try 
+    {
+        vk::ShaderModuleCreateInfo shaderCreateInfo = vk::ShaderModuleCreateInfo(
+            vk::ShaderModuleCreateFlags(),
+            code.size(),
+            reinterpret_cast<const uint32_t*>(code.data())
+        );
+        return Volcano::device->createShaderModuleUnique(shaderCreateInfo);
+    }
+    catch(vk::SystemError& err)
+    {
+        throw std::runtime_error("Failed to create shader module");
     }
 }
 
