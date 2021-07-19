@@ -26,7 +26,7 @@ class Volcano
         inline static vk::SurfaceKHR surface;
         // List of device extensions
         inline static const std::vector<const char*> deviceExtensions = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME         // Swap chain extensions
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME         // Swap chain extensions (macro)
         };
         // Swap chain
         inline static vk::SwapchainKHR swapChain;

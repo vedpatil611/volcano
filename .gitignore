@@ -14,3 +14,4 @@ Makefile
 .ccls
 compile_commands.json
 
+*.spv
