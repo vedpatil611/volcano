@@ -77,7 +77,9 @@ class Volcano
         static void createSwapChain();
         // Create image view
         static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
-
+        // Create render pass
+        static void createRenderPass();
+        // Create graphics pipeline layout (set up all imp stuff)
         static void createGraphicsPipeline();
         // Create shader modules
         static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);

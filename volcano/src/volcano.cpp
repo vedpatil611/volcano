@@ -70,6 +70,7 @@ void Volcano::init(Window* window)
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
     Volcano::createSwapChain();
+    Volcano::createRenderPass();
     Volcano::createGraphicsPipeline();
 }
 
@@ -376,6 +377,27 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
     {
         throw std::runtime_error("Failed to create image view");
     }
+}
+
+void Volcano::createRenderPass()
+{
+    //Colour attachment of renderpass
+    vk::AttachmentDescription colourAttachments = {};
+    colourAttachments.format = Volcano::swapChainImageFormat;               // Use stored format
+    colourAttachments.samples = vk::SampleCountFlagBits::e1;                // Single sample (no multisampling)
+    colourAttachments.loadOp = vk::AttachmentLoadOp::eClear;                // Operation on first load -> clear (similar to glClear())
+    colourAttachments.storeOp = vk::AttachmentStoreOp::eStore;              // Store data to draw
+    colourAttachments.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;      // Don't care about stencil
+    colourAttachments.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+
+    // Framebuffer data can be stored as image. Image can have different layout
+    colourAttachments.initialLayout = vk::ImageLayout::eUndefined;          // Undefine initial layout before render pass start
+    // Initial layout to subpass and then subpass to final
+    colourAttachments.finalLayout = vk::ImageLayout::ePresentSrcKHR;        // layout after render pass
+
+    vk::RenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colourAttachments;
 }
 
 void Volcano::createGraphicsPipeline()
