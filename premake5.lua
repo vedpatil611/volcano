@@ -1,6 +1,7 @@
 workspace "Volcano"
 	architecture "x64"
 	configurations { "Debug", "Release" }
+	startproject "volcano"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
@@ -16,7 +17,7 @@ project	"volcano"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("intermediate/" .. outputdir .. "/%{prj.name}")
 
-	pchheader "volcano/src/volcanoPCH.h"
+	pchheader "volcanoPCH.h"
 	pchsource "volcano/src/volcanoPCH.cpp"
 
 	includedirs { 
@@ -37,6 +38,9 @@ project	"volcano"
 	filter "system:windows"
 		defines {
 			"WINDOWS_BUILD"
+		}
+		libdirs {
+			"Dependencies/vulkan/Lib"
 		}
 		links {
 			"vulkan-1"
