@@ -36,6 +36,8 @@ class Volcano
         inline static vk::Format swapChainImageFormat;
         // Swapchain image extent
         inline static vk::Extent2D swapChainExtent;
+        // Pipeline layout (uniform/descriptor set layout)
+        inline static vk::PipelineLayout pipelineLayout;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build

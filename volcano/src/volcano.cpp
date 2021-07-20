@@ -75,6 +75,7 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
+    Volcano::device->destroyPipelineLayout(pipelineLayout);
     for(auto image: swapChainImages)
     {
         Volcano::device->destroyImageView(image.imageView);
@@ -387,7 +388,7 @@ void Volcano::createGraphicsPipeline()
     auto vertShaderModule = Volcano::createShaderModule(vsCode);
     auto fragShaderModule = Volcano::createShaderModule(fsCode);
 
-    // Pipeline info
+    // Pipeline info for 2 types of shaders
     vk::PipelineShaderStageCreateInfo shaderStages[] = {
         {
             vk::PipelineShaderStageCreateFlags(),
@@ -398,11 +399,113 @@ void Volcano::createGraphicsPipeline()
         {
             vk::PipelineShaderStageCreateFlags(),
             vk::ShaderStageFlagBits::eFragment,     // Fragment shader
-            *vertShaderModule,
+            *fragShaderModule,
             "main"
         }
     };
 
+    // Vertex inputs
+    
+    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
+    vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
+    vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;             // list of vertex bindings (data spacing/stride)
+    vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;           // list of vertex attribute (data format and where/location)
+
+    // Input assembly
+    vk::PipelineInputAssemblyStateCreateInfo assemblyCreateInfo = {};
+    assemblyCreateInfo.topology = vk::PrimitiveTopology::eTriangleList;     // Primitive type to assembly vertex data to
+    assemblyCreateInfo.primitiveRestartEnable = VK_FALSE;                   // Allow overriding of strip topology
+
+    // Viewport and scissor
+    vk::Viewport viewport = {};                                             // Equivalent to glViewport()
+    viewport.x = 0.0f;                                                      // x start
+    viewport.y = 0.0f;                                                      // y start
+    viewport.width = static_cast<float>(Volcano::swapChainExtent.width);    // width
+    viewport.height = static_cast<float>(Volcano::swapChainExtent.height);  // height
+    viewport.minDepth = 0.0f;                                               // framebuffer depth
+    viewport.maxDepth = 1.0f;
+
+    vk::Rect2D scissor = {};
+    scissor.offset = vk::Offset2D(0, 0);
+    scissor.extent = Volcano::swapChainExtent;
+    
+    // save viewport and scissor data to viewport state
+    vk::PipelineViewportStateCreateInfo viewportStateInfo = {};
+    viewportStateInfo.viewportCount = 1;
+    viewportStateInfo.pViewports = &viewport;
+    viewportStateInfo.scissorCount = 1;
+    viewportStateInfo.pScissors = &scissor;
+
+    // Dynamic state
+    //std::vector<vk::DynamicState> dynamicStateEnable = { 
+        //vk::DynamicState::eViewport,                                        // Dynamic viewport can be resized with command buffer
+        //vk::DynamicState::eScissor                                          // Resize with command buffer
+    //};
+
+    //vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};         // Set dynamic state data
+    //dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnable.size());
+    //dynamicStateCreateInfo.pDynamicStates = dynamicStateEnable.data();
+
+    // Rasterizer
+    // Convert primitive to fragment
+    vk::PipelineRasterizationStateCreateInfo rasterizerInfo = {};
+    rasterizerInfo.depthClampEnable = VK_FALSE;                                 // Clip things beyond near/far plane
+    rasterizerInfo.rasterizerDiscardEnable = VK_FALSE;                          // Wheather to create data or skip rasterizer
+    rasterizerInfo.polygonMode = vk::PolygonMode::eFill;                        // Fill entire polygon
+    rasterizerInfo.lineWidth = 1.0f;                                            // Line thickness (need gpu extension for line width other than 1)
+    rasterizerInfo.cullMode = vk::CullModeFlagBits::eBack;                      // Do not draw useless back face
+    rasterizerInfo.frontFace = vk::FrontFace::eClockwise;                       // Clockwise indices are front. Don't draw useless anti clockwise back face
+    rasterizerInfo.depthBiasEnable = VK_FALSE;                                  // true to overcome shadow acne
+
+    // Multisampling
+    vk::PipelineMultisampleStateCreateInfo multisampleInfo = {};
+    multisampleInfo.sampleShadingEnable = VK_FALSE;                             // Disable multisampling
+    multisampleInfo.rasterizationSamples = vk::SampleCountFlagBits::e1;         // Single sample (other value for amount of sample)
+
+    // How to handle color blending
+    vk::PipelineColorBlendAttachmentState colorBlendAttachment;
+    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | 
+                    vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.blendEnable = VK_TRUE;                                 // enable blending
+    // blending equation : (srcColorBlendFactor * newColour) colorBlendOp(dstBlendFactor * oldcolour)
+    // (srcAlpha * newColour) + (1-srcAlpha * oldColour)
+    
+    // Color blending
+    colorBlendAttachment.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+    colorBlendAttachment.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
+    colorBlendAttachment.colorBlendOp = vk::BlendOp::eAdd;
+
+    // Alpha blending
+    // (1 * newAlpha) + (0 * oldAlpha)
+    colorBlendAttachment.srcAlphaBlendFactor = vk::BlendFactor::eOne;           // Do not blend alpha values
+    colorBlendAttachment.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+    colorBlendAttachment.alphaBlendOp = vk::BlendOp::eAdd;
+    
+    // Blending
+    vk::PipelineColorBlendStateCreateInfo colorBlendCreateInfo = {};
+    colorBlendCreateInfo.logicOpEnable = VK_FALSE;                              // Mathamatical > logical
+    colorBlendCreateInfo.attachmentCount = 1;
+    colorBlendCreateInfo.pAttachments = &colorBlendAttachment;
+    
+    // Pipeline actual layout (layout of descriptor sets)
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
+    pipelineLayoutInfo.setLayoutCount = 0;
+    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+
+    try 
+    {
+        Volcano::pipelineLayout = Volcano::device->createPipelineLayout(pipelineLayoutInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create pipleline layout");
+    }
+
+    // Set depth stencil later
+    
     // Unique shader modules automatically destroys after pipeline creation
 }
 
