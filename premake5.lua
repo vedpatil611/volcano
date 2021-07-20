@@ -45,6 +45,9 @@ project	"volcano"
 		links {
 			"vulkan-1"
 		}
+		postbuildcommands {
+			("compile_shaders.bat")
+		}
 
 	filter "system:linux"
 		defines {
