@@ -10,7 +10,7 @@ project	"volcano"
 	location "volcano"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++20"
+	cppdialect "C++17"
 	systemversion "latest"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
