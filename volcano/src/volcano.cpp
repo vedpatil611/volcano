@@ -1,6 +1,7 @@
 #include "volcanoPCH.h"
 #include "volcano.h"
 
+#include <array>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <limits>
@@ -77,6 +78,7 @@ void Volcano::init(Window* window)
 void Volcano::destroy()
 {
     Volcano::device->destroyPipelineLayout(pipelineLayout);
+    Volcano::device->destroyRenderPass(renderPass);
     for(auto image: swapChainImages)
     {
         Volcano::device->destroyImageView(image.imageView);
@@ -395,9 +397,56 @@ void Volcano::createRenderPass()
     // Initial layout to subpass and then subpass to final
     colourAttachments.finalLayout = vk::ImageLayout::ePresentSrcKHR;        // layout after render pass
 
+    // Attachment reference
+    vk::AttachmentReference colourAttachmentRef = {};
+    colourAttachmentRef.attachment = 0;
+    colourAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;  // Optimal for colour output
+
+    // info about subpass that renderpass use
+    vk::SubpassDescription subpass = {};
+    subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;           // Pipeline type
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colourAttachmentRef;
+
+    // When layout transition occur using subpass dependencies
+    std::array<vk::SubpassDependency, 2> subpassDependencies;
+
+    // Coversion from image layout optimal to image layout present src khr
+    // Transition after
+    subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    subpassDependencies[0].srcStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;                                                 // At what stage transtion should occur
+    subpassDependencies[0].srcAccessMask = vk::AccessFlagBits::eMemoryRead;                                                         // Read before conversion
+    // Transition before
+    subpassDependencies[0].dstSubpass = 0;                                                                                          // Before 1st subpass
+    subpassDependencies[0].dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;                                        // Transtion before 
+    subpassDependencies[0].dstAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;    // Before read and write color
+
+    // Transition after
+    subpassDependencies[1].srcSubpass = 0;                                                                                          // After 1st subpass
+    subpassDependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;                                        // At what stage transtion should occur
+    subpassDependencies[1].srcAccessMask = vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;    // Read before conversion
+    // Transition before
+    subpassDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;                                                                        // Before 1st subpass
+    subpassDependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;                                                 // Transtion before 
+    subpassDependencies[1].dstAccessMask = vk::AccessFlagBits::eMemoryRead;                                                         // Before read and write color
+
+    // renderpass create info
     vk::RenderPassCreateInfo renderPassInfo = {};
     renderPassInfo.attachmentCount = 1;
     renderPassInfo.pAttachments = &colourAttachments;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
+    renderPassInfo.pDependencies = subpassDependencies.data();
+
+    try
+    {
+        Volcano::renderPass = Volcano::device->createRenderPass(renderPassInfo);
+    }
+    catch (vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create render pass");
+    }
 }
 
 void Volcano::createGraphicsPipeline()
