@@ -36,6 +36,8 @@ class Volcano
         inline static vk::Format swapChainImageFormat;
         // Swapchain image extent
         inline static vk::Extent2D swapChainExtent;
+        // Graphics pipeline
+        inline static vk::Pipeline graphicsPipeline;
         // Pipeline layout (uniform/descriptor set layout)
         inline static vk::PipelineLayout pipelineLayout;
         // Renderpass

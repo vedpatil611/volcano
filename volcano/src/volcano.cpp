@@ -576,7 +576,36 @@ void Volcano::createGraphicsPipeline()
     }
 
     // Set depth stencil later
-    
+
+    // Graphics pipeline creation
+    vk::GraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.stageCount = 2;                        // 2 stage vertex and fragment shader
+    pipelineInfo.pStages = shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputCreateInfo;
+    pipelineInfo.pInputAssemblyState = &assemblyCreateInfo;
+    pipelineInfo.pViewportState = &viewportStateInfo;
+    pipelineInfo.pDynamicState = nullptr;
+    pipelineInfo.pRasterizationState = &rasterizerInfo;
+    pipelineInfo.pMultisampleState = &multisampleInfo;
+    pipelineInfo.pColorBlendState = &colorBlendCreateInfo;
+    pipelineInfo.pDepthStencilState = nullptr;
+    pipelineInfo.layout = Volcano::pipelineLayout;
+    pipelineInfo.renderPass = Volcano::renderPass;
+    pipelineInfo.subpass = 0;
+
+    // pipeline derivaties
+    pipelineInfo.basePipelineHandle = nullptr;          // Existing pipeline to derive from
+    pipelineInfo.basePipelineIndex = -1;                // index of existing pipeline
+
+    try
+    {
+        Volcano::graphicsPipeline = vk::Pipeline(Volcano::device->createGraphicsPipeline(nullptr, pipelineInfo));
+    }
+    catch (const std::exception&)
+    {
+        throw std::runtime_error("Failed to create graphics pipeline");
+    }
+
     // Unique shader modules automatically destroys after pipeline creation
 }
 
