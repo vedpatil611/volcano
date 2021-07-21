@@ -32,11 +32,11 @@ void Volcano::init(Window* window)
     
         auto extensions = getRequiredExtensions();
 
-        instanceInfo.enabledExtensionCount = extensions.size();
+        instanceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
         instanceInfo.ppEnabledExtensionNames = extensions.data();
 
 #ifdef DEBUG
-        instanceInfo.enabledLayerCount = validationLayers.size();
+        instanceInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         instanceInfo.ppEnabledLayerNames = validationLayers.data();
 #else
         instanceInfo.enabledLayerCount = 0;
@@ -188,15 +188,15 @@ void Volcano::createLogicalDevice()
     auto deviceFeature = vk::PhysicalDeviceFeatures();
     auto createInfo = vk::DeviceCreateInfo(
         vk::DeviceCreateFlags(),
-        queueCreateInfos.size(),
+        static_cast<uint32_t>(queueCreateInfos.size()),
         queueCreateInfos.data()
     );
     createInfo.pEnabledFeatures = &deviceFeature;
-    createInfo.enabledExtensionCount = deviceExtensions.size();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
 #ifdef DEBUG
-    createInfo.enabledLayerCount = validationLayers.size();
+    createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
 
