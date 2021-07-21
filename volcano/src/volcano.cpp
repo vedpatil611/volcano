@@ -77,8 +77,9 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
-    Volcano::device->destroyPipelineLayout(pipelineLayout);
-    Volcano::device->destroyRenderPass(renderPass);
+    Volcano::device->destroyPipeline(Volcano::graphicsPipeline);
+    Volcano::device->destroyPipelineLayout(Volcano::pipelineLayout);
+    Volcano::device->destroyRenderPass(Volcano::renderPass);
     for(auto image: swapChainImages)
     {
         Volcano::device->destroyImageView(image.imageView);
