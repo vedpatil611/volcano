@@ -82,6 +82,7 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
+    Volcano::device->waitIdle();
     Volcano::device->destroySemaphore(renderFinished);
     Volcano::device->destroySemaphore(imageAvailable);
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
