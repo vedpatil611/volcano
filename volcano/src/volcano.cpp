@@ -77,10 +77,13 @@ void Volcano::init(Window* window)
     Volcano::createCommandPool();
     Volcano::createCommandBuffer();
     Volcano::recordCommands();
+    Volcano::createSynchronization();
 }
 
 void Volcano::destroy()
 {
+    Volcano::device->destroySemaphore(renderFinished);
+    Volcano::device->destroySemaphore(imageAvailable);
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
     for(auto& framebuffer: Volcano::swapChainFramebuffers)
         Volcano::device->destroyFramebuffer(framebuffer);
@@ -97,6 +100,56 @@ void Volcano::destroy()
 #ifdef DEBUG
     destroyDebugUtilMessengerEXT(instance, callback, nullptr);
 #endif
+}
+
+void Volcano::draw()
+{
+    // 1. Get next available image to draw to
+    uint32_t index;
+    index = Volcano::device->acquireNextImageKHR(Volcano::swapChain, std::numeric_limits<uint64_t>::max(), Volcano::imageAvailable, nullptr).value;
+    
+    // 2. Submit command buffer to graphics queue
+    // Queue submit info
+    vk::SubmitInfo submitInfo = {};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &Volcano::imageAvailable;          // Semaphore to wait for
+    
+    vk::PipelineStageFlags waitStages[] = {
+        vk::PipelineStageFlagBits::eColorAttachmentOutput
+    };
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &Volcano::commandBuffers[index];
+    submitInfo.signalSemaphoreCount = 1;                            // Semaphore to signal after rendering is finished
+    submitInfo.pSignalSemaphores = &Volcano::renderFinished;
+
+    try
+    {
+        Volcano::graphicsQueue.submit(submitInfo, nullptr);
+    }
+    catch(vk::SystemError& e)
+    {
+         throw std::runtime_error("Failed to submit command buffer to queue");
+    }
+    
+    // Images is drawn to buffer till this stage
+
+    // 3. Present image to screen
+    vk::PresentInfoKHR presentInfo = {};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &Volcano::renderFinished;          // Semaphore to wait for
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &Volcano::swapChain;
+    presentInfo.pImageIndices = &index;
+
+    try
+    {
+        Volcano::presentQueue.presentKHR(presentInfo);;
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create r");
+    }
 }
 
 void Volcano::pickPhysicalDevice()
@@ -753,6 +806,22 @@ void Volcano::recordCommands()
         {
             throw std::runtime_error("Failed to end recording command buffer");
         }
+    }
+}
+
+void Volcano::createSynchronization()
+{
+    // Semaphore creation info
+    vk::SemaphoreCreateInfo semaphoreCreateInfo = {};                           // Only deafault struct type is required
+    
+    try 
+    {
+        Volcano::imageAvailable = Volcano::device->createSemaphore(semaphoreCreateInfo);
+        Volcano::renderFinished = Volcano::device->createSemaphore(semaphoreCreateInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create semaphore");
     }
 }
 

@@ -10,6 +10,7 @@ int main()
     while(!window.shouldClose())
     {
         window.pollEvents();
+        Volcano::draw();
     }
 
     Volcano::destroy();

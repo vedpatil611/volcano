@@ -48,6 +48,10 @@ class Volcano
         inline static vk::RenderPass renderPass;
         // Graphics command pool
         inline static vk::CommandPool graphicsCommandPool;
+        // Singal after image is ready to be rendered
+        inline static vk::Semaphore imageAvailable;
+        // Signal after rendering is finised
+        inline static vk::Semaphore renderFinished;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
@@ -62,6 +66,8 @@ class Volcano
         static void init(Window* window);
         // Destroy instance
         static void destroy();
+        // Render to screen
+        static void draw();
     private:
         // Query and select logical device
         static void pickPhysicalDevice();
@@ -101,6 +107,8 @@ class Volcano
         static void createCommandBuffer();
         // record commands to buffer
         static void recordCommands();
+        // Create semaphores for synchronization
+        static void createSynchronization();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
