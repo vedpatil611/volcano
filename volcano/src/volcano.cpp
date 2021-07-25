@@ -679,6 +679,21 @@ void Volcano::createCommandPool()
     }
 }
 
+void Volcano::createCommandBuffer()
+{
+    Volcano::commandBuffers.resize(Volcano::swapChainFramebuffers.size());
+    
+    vk::CommandBufferAllocateInfo cbAllocInfo = {};
+    cbAllocInfo.commandPool = Volcano::graphicsCommandPool;
+    cbAllocInfo.level = vk::CommandBufferLevel::ePrimary;                       // Buffer directly submit to queue. Can't be called by other buffers
+    cbAllocInfo.commandBufferCount = static_cast<uint32_t>(Volcano::commandBuffers.size());
+
+    // allocate command buffer
+    vk::Result result = Volcano::device->allocateCommandBuffers(&cbAllocInfo, Volcano::commandBuffers.data());
+    if(result != vk::Result::eSuccess)
+        throw std::runtime_error("Failed to allocate command buffers");
+}
+
 #ifdef DEBUG
 bool Volcano::checkValidationLayerSupport()
 {

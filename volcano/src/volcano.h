@@ -34,6 +34,8 @@ class Volcano
         inline static std::vector<SwapChainImage> swapChainImages;
         // List of framebuffers
         inline static std::vector<vk::Framebuffer> swapChainFramebuffers;
+        // List of command buffers
+        inline static std::vector<vk::CommandBuffer> commandBuffers;
         // Swapchain image format
         inline static vk::Format swapChainImageFormat;
         // Swapchain image extent
@@ -95,6 +97,8 @@ class Volcano
         static void createFramebuffers();
         // Create command pool
         static void createCommandPool();
+        // Create command buffer
+        static void createCommandBuffer();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
