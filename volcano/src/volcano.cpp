@@ -73,6 +73,10 @@ void Volcano::init(Window* window)
     Volcano::createSwapChain();
     Volcano::createRenderPass();
     Volcano::createGraphicsPipeline();
+    Volcano::createFramebuffers();
+    Volcano::createCommandPool();
+    Volcano::createCommandBuffer();
+    Volcano::recordCommands();
 }
 
 void Volcano::destroy()
@@ -732,7 +736,7 @@ void Volcano::recordCommands()
             
             {
                 // bind pipeline to be used in command buffer
-                Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eCompute, Volcano::graphicsPipeline);
+                Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, Volcano::graphicsPipeline);
                 
                 // Execute pipline
                 Volcano::commandBuffers[i].draw(3, 1, 0, 0);
