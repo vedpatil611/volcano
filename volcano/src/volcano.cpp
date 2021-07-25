@@ -694,6 +694,64 @@ void Volcano::createCommandBuffer()
         throw std::runtime_error("Failed to allocate command buffers");
 }
 
+void Volcano::recordCommands()
+{
+    // Info about how to begin each command buffer
+    
+    vk::CommandBufferBeginInfo bufferBeginInfo = {};
+    bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;   // Buffer submit whem already submmited and awaiting execution
+
+    // Info about how to begin render pass (only for graphics)
+    vk::RenderPassBeginInfo renderPassBeginInfo = {};
+    renderPassBeginInfo.renderPass = Volcano::renderPass;
+    renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);                 // Start point of render pass
+    renderPassBeginInfo.renderArea.extent = Volcano::swapChainExtent;           // Size of region to run renderpass on
+    
+    vk::ClearValue clearValues[] = {
+        vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f })
+    };
+
+    renderPassBeginInfo.pClearValues = clearValues;                             // List of clear values (list because might add depth later)
+    renderPassBeginInfo.clearValueCount = 1;
+
+    for(size_t i = 0; i < Volcano::commandBuffers.size(); ++i)
+    {
+        renderPassBeginInfo.framebuffer = Volcano::swapChainFramebuffers[i];
+
+        try
+        {
+            Volcano::commandBuffers[i].begin(bufferBeginInfo);                  // Begin recording
+        }
+        catch(vk::SystemError& e)
+        {
+            throw std::runtime_error("Failed to begin recording command buffer");
+        }
+
+        {
+            Volcano::commandBuffers[i].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+            
+            {
+                // bind pipeline to be used in command buffer
+                Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eCompute, Volcano::graphicsPipeline);
+                
+                // Execute pipline
+                Volcano::commandBuffers[i].draw(3, 1, 0, 0);
+            }
+
+            Volcano::commandBuffers[i].endRenderPass();
+        }
+        
+        try
+        {
+            Volcano::commandBuffers[i].end();                                   // End recording
+        }
+        catch(vk::SystemError& e)
+        {
+            throw std::runtime_error("Failed to end recording command buffer");
+        }
+    }
+}
+
 #ifdef DEBUG
 bool Volcano::checkValidationLayerSupport()
 {

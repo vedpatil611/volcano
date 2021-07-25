@@ -99,6 +99,8 @@ class Volcano
         static void createCommandPool();
         // Create command buffer
         static void createCommandBuffer();
+        // record commands to buffer
+        static void recordCommands();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
