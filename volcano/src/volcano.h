@@ -32,6 +32,8 @@ class Volcano
         inline static vk::SwapchainKHR swapChain;
         // List of swap chain images
         inline static std::vector<SwapChainImage> swapChainImages;
+        // List of framebuffers
+        inline static std::vector<vk::Framebuffer> swapChainFramebuffers;
         // Swapchain image format
         inline static vk::Format swapChainImageFormat;
         // Swapchain image extent
@@ -42,6 +44,8 @@ class Volcano
         inline static vk::PipelineLayout pipelineLayout;
         // Renderpass
         inline static vk::RenderPass renderPass;
+        // Graphics command pool
+        inline static vk::CommandPool graphicsCommandPool;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
@@ -87,6 +91,10 @@ class Volcano
         static void createGraphicsPipeline();
         // Create shader modules
         static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
+        // Create list of framebuffers
+        static void createFramebuffers();
+        // Create command pool
+        static void createCommandPool();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

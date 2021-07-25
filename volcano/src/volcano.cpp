@@ -77,10 +77,13 @@ void Volcano::init(Window* window)
 
 void Volcano::destroy()
 {
+    Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
+    for(auto& framebuffer: Volcano::swapChainFramebuffers)
+        Volcano::device->destroyFramebuffer(framebuffer);
     Volcano::device->destroyPipeline(Volcano::graphicsPipeline);
     Volcano::device->destroyPipelineLayout(Volcano::pipelineLayout);
     Volcano::device->destroyRenderPass(Volcano::renderPass);
-    for(auto image: swapChainImages)
+    for(auto& image: swapChainImages)
     {
         Volcano::device->destroyImageView(image.imageView);
     }
@@ -600,7 +603,7 @@ void Volcano::createGraphicsPipeline()
 
     try
     {
-        Volcano::graphicsPipeline = vk::Pipeline(Volcano::device->createGraphicsPipeline(nullptr, pipelineInfo));
+        Volcano::graphicsPipeline = Volcano::device->createGraphicsPipeline(nullptr, pipelineInfo).value;
     }
     catch (const std::exception&)
     {
@@ -624,6 +627,55 @@ vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code
     catch(vk::SystemError& err)
     {
         throw std::runtime_error("Failed to create shader module");
+    }
+}
+
+void Volcano::createFramebuffers()
+{
+    Volcano::swapChainFramebuffers.resize(Volcano::swapChainImages.size());         // Resize for same size
+
+    for(size_t i = 0; i < swapChainFramebuffers.size(); ++i)
+    {
+        // Swapchain image view
+        std::array<vk::ImageView, 1> attachments = {
+            Volcano::swapChainImages[i].imageView
+        };
+
+        // Framebuffer info
+        vk::FramebufferCreateInfo framebufferCreateInfo = {};
+        framebufferCreateInfo.renderPass = Volcano::renderPass;
+        framebufferCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferCreateInfo.pAttachments = attachments.data();
+        framebufferCreateInfo.width = Volcano::swapChainExtent.width;
+        framebufferCreateInfo.height = Volcano::swapChainExtent.height;
+        framebufferCreateInfo.layers = 1;
+
+        try
+        {
+            Volcano::swapChainFramebuffers[i] = Volcano::device->createFramebuffer(framebufferCreateInfo);
+        }
+        catch(vk::SystemError& e)
+        {
+            throw std::runtime_error("Failed to create framebuffer");
+        }
+    }
+}
+
+void Volcano::createCommandPool()
+{
+    QueueFamilyIndicies queueFamilyIndices = Volcano::findQueueFamily(Volcano::physicalDevice);
+
+    vk::CommandPoolCreateInfo poolInfo = {};
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();      // Queue family type that command buffer will use
+
+    // Create graphocs queue family command pool
+    try
+    {
+        Volcano::graphicsCommandPool = Volcano::device->createCommandPool(poolInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create a command pool");
     }
 }
 
