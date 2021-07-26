@@ -9,9 +9,12 @@ struct QueueFamilyIndicies;
 struct SwapChainSupportDetails;
 class Window;
 
+#define MAX_FRAME_DRAWS 2
+
 class Volcano
 {
     private:
+        inline static int currentFrame = 0;
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
         // GPU device
@@ -49,9 +52,9 @@ class Volcano
         // Graphics command pool
         inline static vk::CommandPool graphicsCommandPool;
         // Singal after image is ready to be rendered
-        inline static vk::Semaphore imageAvailable;
+        inline static std::vector<vk::Semaphore> imageAvailable;
         // Signal after rendering is finised
-        inline static vk::Semaphore renderFinished;
+        inline static std::vector<vk::Semaphore> renderFinished;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
