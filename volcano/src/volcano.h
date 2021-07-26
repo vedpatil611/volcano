@@ -55,6 +55,8 @@ class Volcano
         inline static std::vector<vk::Semaphore> imageAvailable;
         // Signal after rendering is finised
         inline static std::vector<vk::Semaphore> renderFinished;
+        // Fences for cpu-gpu sync
+        inline static std::vector<vk::Fence> drawFences;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build

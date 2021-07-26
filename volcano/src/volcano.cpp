@@ -87,6 +87,7 @@ void Volcano::destroy()
     {
         Volcano::device->destroySemaphore(Volcano::renderFinished[i]);
         Volcano::device->destroySemaphore(Volcano::imageAvailable[i]);
+        Volcano::device->destroyFence(Volcano::drawFences[i]);
     }
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
     for(auto& framebuffer: Volcano::swapChainFramebuffers)
@@ -108,10 +109,15 @@ void Volcano::destroy()
 
 void Volcano::draw()
 {
+    // Wait for fence to signal
+    Volcano::device->waitForFences(Volcano::drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+    // Manually reset closed fences
+    Volcano::device->resetFences(Volcano::drawFences[currentFrame]);
+    
     // 1. Get next available image to draw to
     uint32_t index;
     index = Volcano::device->acquireNextImageKHR(Volcano::swapChain, std::numeric_limits<uint64_t>::max(), Volcano::imageAvailable[Volcano::currentFrame], nullptr).value;
-    
+
     // 2. Submit command buffer to graphics queue
     // Queue submit info
     vk::SubmitInfo submitInfo = {};
@@ -129,7 +135,7 @@ void Volcano::draw()
 
     try
     {
-        Volcano::graphicsQueue.submit(submitInfo, nullptr);
+        Volcano::graphicsQueue.submit(submitInfo, Volcano::drawFences[currentFrame]);
     }
     catch(vk::SystemError& e)
     {
@@ -813,21 +819,27 @@ void Volcano::createSynchronization()
 {
     Volcano::imageAvailable.resize(MAX_FRAME_DRAWS);
     Volcano::renderFinished.resize(MAX_FRAME_DRAWS);
+    Volcano::drawFences.resize(MAX_FRAME_DRAWS);
 
     // Semaphore creation info
     vk::SemaphoreCreateInfo semaphoreCreateInfo = {};                           // Only deafault struct type is required
-    
+
+    // Fence create info
+    vk::FenceCreateInfo fenceInfo = {};
+    fenceInfo.flags = vk::FenceCreateFlagBits::eSignaled;
+
     try 
     {
         for (int i = 0; i < MAX_FRAME_DRAWS; ++i)
         {
             Volcano::imageAvailable[i] = Volcano::device->createSemaphore(semaphoreCreateInfo);
             Volcano::renderFinished[i] = Volcano::device->createSemaphore(semaphoreCreateInfo);
+            Volcano::drawFences[i] = Volcano::device->createFence(fenceInfo);
         }
     }
     catch(vk::SystemError& e)
     {
-        throw std::runtime_error("Failed to create semaphore");
+        throw std::runtime_error("Failed to create semaphore/fences");
     }
 }
 
