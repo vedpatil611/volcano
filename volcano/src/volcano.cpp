@@ -762,7 +762,8 @@ void Volcano::recordCommands()
     // Info about how to begin each command buffer
     
     vk::CommandBufferBeginInfo bufferBeginInfo = {};
-    bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;   // Buffer submit whem already submmited and awaiting execution
+    // No longer needed because of fences
+    //bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;   // Buffer submit whem already submmited and awaiting execution
 
     // Info about how to begin render pass (only for graphics)
     vk::RenderPassBeginInfo renderPassBeginInfo = {};
