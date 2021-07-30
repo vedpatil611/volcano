@@ -11,6 +11,7 @@
 #include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
 #include "utils.h"
+#include "vertex.h"
 #include "window.h"
 
 void Volcano::init(Window* window)
@@ -70,6 +71,14 @@ void Volcano::init(Window* window)
     Volcano::createSurface();
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
+ 
+    std::vector<Vertex> meshVertex = {
+        {{  0.0f, -0.4f, 0.0f }},
+        {{  0.4f,  0.4f, 0.0f }},
+        {{ -0.4f,  0.4f, 0.0f }}
+    };
+    mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), meshVertex);
+
     Volcano::createSwapChain();
     Volcano::createRenderPass();
     Volcano::createGraphicsPipeline();
@@ -542,13 +551,29 @@ void Volcano::createGraphicsPipeline()
         }
     };
 
+
+    // Binding description data for single vertex as whole
+    vk::VertexInputBindingDescription bindingDescription = {};
+    bindingDescription.binding = 0;                                         // can bind multiple stream of data
+    bindingDescription.stride = sizeof(Vertex);
+    bindingDescription.inputRate = vk::VertexInputRate::eVertex;            // How to move between data after eavh vertex
+
+    // How data for an attribute is defined within a vertex
+    std::array<vk::VertexInputAttributeDescription, 1> attributeDescriptions;
+
+    // position
+    attributeDescriptions[0].binding = 0;                                   // Which binding the data is at
+    attributeDescriptions[0].location = 0;                                  // Location in shader
+    attributeDescriptions[0].format = vk::Format::eR32G32B32Sfloat;         // Format the data will take
+    attributeDescriptions[0].offset = offsetof(Vertex, pos);                // offset of data in struct
+
+
     // Vertex inputs
-    
     vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
-    vertexInputCreateInfo.vertexBindingDescriptionCount = 0;
-    vertexInputCreateInfo.pVertexBindingDescriptions = nullptr;             // list of vertex bindings (data spacing/stride)
-    vertexInputCreateInfo.vertexAttributeDescriptionCount = 0;
-    vertexInputCreateInfo.pVertexAttributeDescriptions = nullptr;           // list of vertex attribute (data format and where/location)
+    vertexInputCreateInfo.vertexBindingDescriptionCount = 1;
+    vertexInputCreateInfo.pVertexBindingDescriptions = &bindingDescription;                 // list of vertex bindings (data spacing/stride)
+    vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputCreateInfo.pVertexAttributeDescriptions = attributeDescriptions.data();      // list of vertex attribute (data format and where/location)
 
     // Input assembly
     vk::PipelineInputAssemblyStateCreateInfo assemblyCreateInfo = {};
@@ -798,8 +823,12 @@ void Volcano::recordCommands()
                 // bind pipeline to be used in command buffer
                 Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, Volcano::graphicsPipeline);
                 
+                vk::Buffer vertexBuffer[] = { mesh->getVertexBuffer() };            // list of buffer to bind
+                vk::DeviceSize offsets[] = { 0 };                                   // list of offsets
+                commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
+                
                 // Execute pipline
-                Volcano::commandBuffers[i].draw(3, 1, 0, 0);
+                Volcano::commandBuffers[i].draw(mesh->getVertexCount(), 1, 0, 0);
             }
 
             Volcano::commandBuffers[i].endRenderPass();

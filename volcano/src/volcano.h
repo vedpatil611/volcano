@@ -3,6 +3,8 @@
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan.hpp>
+#include <memory>
+#include "mesh.h"
 #include "SwapChainImage.h"
 
 struct QueueFamilyIndicies;
@@ -66,6 +68,8 @@ class Volcano
         };
         inline static VkDebugUtilsMessengerEXT callback;
 #endif
+        // Scene object
+        inline static std::shared_ptr<Mesh> mesh; 
     public:
         // Initalize vulkan instance
         static void init(Window* window);
