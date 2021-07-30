@@ -73,13 +73,13 @@ void Volcano::init(Window* window)
     Volcano::createLogicalDevice();
  
     std::vector<Vertex> meshVertex = {
-        {{  0.4f, -0.4f, 0.0f }},
-        {{  0.4f,  0.4f, 0.0f }},
-        {{ -0.4f,  0.4f, 0.0f }},
+        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+        {{  0.4f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
+        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
         
-        {{ -0.4f,  0.4f, 0.0f }},
-        {{ -0.4f, -0.4f, 0.0f }},
-        {{  0.4f, -0.4f, 0.0f }}
+        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
+        {{ -0.4f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
+        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }}
     };
     mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), meshVertex);
 
@@ -563,7 +563,7 @@ void Volcano::createGraphicsPipeline()
     bindingDescription.inputRate = vk::VertexInputRate::eVertex;            // How to move between data after eavh vertex
 
     // How data for an attribute is defined within a vertex
-    std::array<vk::VertexInputAttributeDescription, 1> attributeDescriptions;
+    std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions;
 
     // position
     attributeDescriptions[0].binding = 0;                                   // Which binding the data is at
@@ -571,6 +571,10 @@ void Volcano::createGraphicsPipeline()
     attributeDescriptions[0].format = vk::Format::eR32G32B32Sfloat;         // Format the data will take
     attributeDescriptions[0].offset = offsetof(Vertex, pos);                // offset of data in struct
 
+    attributeDescriptions[1].binding = 0;
+    attributeDescriptions[1].location = 1;
+    attributeDescriptions[1].format = vk::Format::eR32G32B32A32Sfloat;
+    attributeDescriptions[1].offset = offsetof(Vertex, col);
 
     // Vertex inputs
     vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo = {};
