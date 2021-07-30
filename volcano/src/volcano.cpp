@@ -73,9 +73,13 @@ void Volcano::init(Window* window)
     Volcano::createLogicalDevice();
  
     std::vector<Vertex> meshVertex = {
-        {{  0.0f, -0.4f, 0.0f }},
+        {{  0.4f, -0.4f, 0.0f }},
         {{  0.4f,  0.4f, 0.0f }},
-        {{ -0.4f,  0.4f, 0.0f }}
+        {{ -0.4f,  0.4f, 0.0f }},
+        
+        {{ -0.4f,  0.4f, 0.0f }},
+        {{ -0.4f, -0.4f, 0.0f }},
+        {{  0.4f, -0.4f, 0.0f }}
     };
     mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), meshVertex);
 
