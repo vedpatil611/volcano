@@ -81,13 +81,15 @@ void Volcano::init(Window* window)
         {{ -0.4f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
         {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }}
     };
-    mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), meshVertex);
 
     Volcano::createSwapChain();
     Volcano::createRenderPass();
     Volcano::createGraphicsPipeline();
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
+    
+    mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), Volcano::graphicsQueue, Volcano::graphicsCommandPool ,meshVertex);
+   
     Volcano::createCommandBuffer();
     Volcano::recordCommands();
     Volcano::createSynchronization();
@@ -122,6 +124,7 @@ void Volcano::destroy()
 
 void Volcano::draw()
 {
+    
     // Wait for fence to signal
     Volcano::device->waitForFences(Volcano::drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
     // Manually reset closed fences
@@ -936,6 +939,49 @@ uint32_t Volcano::findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyF
             return i;
         }
     }
+}
+
+void Volcano::copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize)
+{
+    // Command Buffer to hold transfer commands
+    vk::CommandBuffer transferCommandBuffer;
+
+    // command buffer details
+    vk::CommandBufferAllocateInfo allocInfo = {};
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandPool = transferCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    // Allocate command buffer from pool
+    transferCommandBuffer = Volcano::device->allocateCommandBuffers(allocInfo)[0];
+
+    // Info to begin command buffer
+    vk::CommandBufferBeginInfo beginInfo = {};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    
+    transferCommandBuffer.begin(beginInfo);
+    {
+        // Region of data to copy from into
+        vk::BufferCopy bufferCopyRegion = {};
+        bufferCopyRegion.srcOffset = 0;
+        bufferCopyRegion.dstOffset = 0;
+        bufferCopyRegion.size = bufferSize;
+
+        transferCommandBuffer.copyBuffer(src, dst, bufferCopyRegion);
+    }
+    transferCommandBuffer.end();
+
+    // Queue submit info
+    vk::SubmitInfo submitInfo = {};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &transferCommandBuffer;
+    
+    // Submit transfer command to transfer queue and wait till it finish
+    transferQueue.submit(submitInfo);
+    transferQueue.waitIdle();
+
+    // Free command buffer back to pool
+    Volcano::device->freeCommandBuffers(transferCommandPool, transferCommandBuffer);
 }
 
 #ifdef DEBUG

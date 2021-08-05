@@ -1,6 +1,7 @@
 #include "volcanoPCH.h"
 #include "volcano.h"
 #include "window.h"
+#include <iostream>
 
 int main()
 {

@@ -80,6 +80,8 @@ class Volcano
         // Create buffer based on given flag
         static void createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::DeviceSize bufferSize, 
             vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+        // copy buffer
+        static void copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
     private:
         // Query and select logical device
         static void pickPhysicalDevice();
@@ -123,6 +125,7 @@ class Volcano
         static void createSynchronization();
 
         static uint32_t findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties);
+
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
