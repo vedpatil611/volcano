@@ -20,5 +20,4 @@ public:
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
 private:
     void createVertexBuffer(std::vector<Vertex>& vertices);
-    uint32_t findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties);
 };

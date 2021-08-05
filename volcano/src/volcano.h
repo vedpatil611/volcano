@@ -77,6 +77,9 @@ class Volcano
         static void destroy();
         // Render to screen
         static void draw();
+        // Create buffer based on given flag
+        static void createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::DeviceSize bufferSize, 
+            vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
     private:
         // Query and select logical device
         static void pickPhysicalDevice();
@@ -118,6 +121,8 @@ class Volcano
         static void recordCommands();
         // Create semaphores for synchronization
         static void createSynchronization();
+
+        static uint32_t findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

@@ -881,6 +881,63 @@ void Volcano::createSynchronization()
     }
 }
 
+void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, 
+                vk::MemoryPropertyFlags bufferProperties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
+{
+    vk::BufferCreateInfo bufferInfo = {};
+    bufferInfo.size = bufferSize;
+    bufferInfo.usage = bufferUsageFlags;
+    bufferInfo.sharingMode = vk::SharingMode::eExclusive;
+
+    try 
+    {
+        buffer = device.createBuffer(bufferInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create vertex buffer");
+    }
+
+    vk::MemoryRequirements memRequirements = {};
+    memRequirements = device.getBufferMemoryRequirements(buffer);
+
+    vk::MemoryAllocateInfo memAllocInfo = {};
+    memAllocInfo.allocationSize = memRequirements.size;
+
+    // Host visible bit -> cpu can interact
+    // Conherant bit -> allows placement of data straight into buffer after mapping 
+    memAllocInfo.memoryTypeIndex = findMemoryTypeIndex(memRequirements.memoryTypeBits, bufferProperties);
+    
+    try 
+    {
+        // Allocate to device memory
+        bufferMemory = device.allocateMemory(memAllocInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to allocate memory");
+    }
+
+    // Allocate mem to vertex buffer
+    device.bindBufferMemory(buffer, bufferMemory, 0);
+ 
+}
+
+uint32_t Volcano::findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties)
+{
+    vk::PhysicalDeviceMemoryProperties memProperties;
+    memProperties = Volcano::physicalDevice.getMemoryProperties();
+
+    for(uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
+    {
+        if((allowedTypes & (1 << i)) && memProperties.memoryTypes[i].propertyFlags & properties)
+        {
+            // Memory type is valid so return it
+            return i;
+        }
+    }
+}
+
 #ifdef DEBUG
 bool Volcano::checkValidationLayerSupport()
 {
