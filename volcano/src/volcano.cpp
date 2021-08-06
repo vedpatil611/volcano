@@ -837,12 +837,16 @@ void Volcano::recordCommands()
                 // bind pipeline to be used in command buffer
                 Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, Volcano::graphicsPipeline);
                 
+                // Bind vertex buffer
                 vk::Buffer vertexBuffer[] = { mesh->getVertexBuffer() };            // list of buffer to bind
                 vk::DeviceSize offsets[] = { 0 };                                   // list of offsets
-                commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
+                Volcano::commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
+                
+                // Bind index buffer
+                Volcano::commandBuffers[i].bindIndexBuffer(mesh->getIndexBuffer(), 0, vk::IndexType::eUint32);
                 
                 // Execute pipline
-                Volcano::commandBuffers[i].draw(mesh->getVertexCount(), 1, 0, 0);
+                Volcano::commandBuffers[i].drawIndexed(mesh->getIndexCount(), 1, 0, 0, 0);
             }
 
             Volcano::commandBuffers[i].endRenderPass();

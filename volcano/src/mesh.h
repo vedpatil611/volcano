@@ -22,6 +22,9 @@ public:
 
     inline int getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
+    
+    inline int getIndexCount() const { return indexCount; };
+    inline vk::Buffer getIndexBuffer() const { return indexBuffer; };
 private:
     void createVertexBuffer(std::vector<Vertex>& vertices);
     void createIndexBuffer(std::vector<uint32_t>& indices);
