@@ -4,10 +4,10 @@
 #include "iostream"
 #include "volcano.h"
 
-Mesh::Mesh(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, std::vector<Vertex>& vertices) 
-    : physicalDevice(physicalDevice), device(device), vertexCount(vertices.size())
+Mesh::Mesh(vk::Device& device, std::vector<Vertex>& vertices)
+    : device(device), vertexCount(vertices.size())
 {
-    createVertexBuffer(transferQueue, transferCommandPool, vertices);
+    createVertexBuffer(vertices);
 }
 
 Mesh::~Mesh()
@@ -17,7 +17,7 @@ Mesh::~Mesh()
 }
 
 
-void Mesh::createVertexBuffer(vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, std::vector<Vertex>& vertices)
+void Mesh::createVertexBuffer(std::vector<Vertex>& vertices)
 {
     // get size of buffer
     vk::DeviceSize bufferSize = sizeof(Vertex) * vertices.size();
@@ -27,11 +27,10 @@ void Mesh::createVertexBuffer(vk::Queue& transferQueue, vk::CommandPool& transfe
     vk::DeviceMemory stagingBufferMemory;
 
     // Create stating buffer and allocate memory
-    Volcano::createBuffer(physicalDevice, device, bufferSize, vk::BufferUsageFlagBits::eTransferSrc, 
+    Volcano::createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, 
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
         stagingBuffer, stagingBufferMemory);
 
-    
     // Map memory to buffer
     void* data;                                                         // pointer in normal memory
     data = device.mapMemory(stagingBufferMemory, 0, bufferSize);        // Connnect vertex buffer memory and pointer
@@ -39,11 +38,11 @@ void Mesh::createVertexBuffer(vk::Queue& transferQueue, vk::CommandPool& transfe
     device.unmapMemory(stagingBufferMemory);                            // Unmap buffer memory
 
     // Create buffer with transfer dst to mark as reciptant for of transfer data
-    Volcano::createBuffer(physicalDevice, device, bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+    Volcano::createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer, vertexBufferMemory);        // local bit means memory is on gpu and only accescible by it
 
 
-    Volcano::copyBuffer(transferQueue, transferCommandPool, stagingBuffer, vertexBuffer, bufferSize);
+    Volcano::copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
     // Clean up staging buffer
     device.destroyBuffer(stagingBuffer);

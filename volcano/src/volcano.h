@@ -78,10 +78,10 @@ class Volcano
         // Render to screen
         static void draw();
         // Create buffer based on given flag
-        static void createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::DeviceSize bufferSize, 
-            vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
+                vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
         // copy buffer
-        static void copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
     private:
         // Query and select logical device
         static void pickPhysicalDevice();

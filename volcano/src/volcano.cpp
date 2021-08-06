@@ -71,15 +71,18 @@ void Volcano::init(Window* window)
     Volcano::createSurface();
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
- 
+
+    // Vertex data
     std::vector<Vertex> meshVertex = {
-        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-        {{  0.4f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
-        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
-        
-        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
-        {{ -0.4f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
-        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }}
+        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
+        {{  0.4f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
+        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
+        {{ -0.4f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
+    };
+
+    std::vector<uint32_t> meshIndices = {
+        0, 1, 2, 
+        2, 3, 0
     };
 
     Volcano::createSwapChain();
@@ -88,7 +91,7 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
     
-    mesh = std::make_shared<Mesh>(Volcano::physicalDevice, Volcano::device.get(), Volcano::graphicsQueue, Volcano::graphicsCommandPool ,meshVertex);
+    mesh = std::make_shared<Mesh>(Volcano::device.get(), meshVertex);
    
     Volcano::createCommandBuffer();
     Volcano::recordCommands();
@@ -884,7 +887,7 @@ void Volcano::createSynchronization()
     }
 }
 
-void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& device, vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, 
+void Volcano::createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, 
                 vk::MemoryPropertyFlags bufferProperties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory)
 {
     vk::BufferCreateInfo bufferInfo = {};
@@ -894,7 +897,7 @@ void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& devic
 
     try 
     {
-        buffer = device.createBuffer(bufferInfo);
+        buffer = Volcano::device->createBuffer(bufferInfo);
     }
     catch(vk::SystemError& e)
     {
@@ -902,7 +905,7 @@ void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& devic
     }
 
     vk::MemoryRequirements memRequirements = {};
-    memRequirements = device.getBufferMemoryRequirements(buffer);
+    memRequirements = Volcano::device->getBufferMemoryRequirements(buffer);
 
     vk::MemoryAllocateInfo memAllocInfo = {};
     memAllocInfo.allocationSize = memRequirements.size;
@@ -914,7 +917,7 @@ void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& devic
     try 
     {
         // Allocate to device memory
-        bufferMemory = device.allocateMemory(memAllocInfo);
+        bufferMemory = Volcano::device->allocateMemory(memAllocInfo);
     }
     catch(vk::SystemError& e)
     {
@@ -922,7 +925,7 @@ void Volcano::createBuffer(vk::PhysicalDevice& physicalDevice, vk::Device& devic
     }
 
     // Allocate mem to vertex buffer
-    device.bindBufferMemory(buffer, bufferMemory, 0);
+    Volcano::device->bindBufferMemory(buffer, bufferMemory, 0);
  
 }
 
@@ -941,7 +944,7 @@ uint32_t Volcano::findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyF
     }
 }
 
-void Volcano::copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferCommandPool, vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize)
+void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize)
 {
     // Command Buffer to hold transfer commands
     vk::CommandBuffer transferCommandBuffer;
@@ -949,7 +952,7 @@ void Volcano::copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferComm
     // command buffer details
     vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandPool = transferCommandPool;
+    allocInfo.commandPool = Volcano::graphicsCommandPool;       // graphics command pool is same as transfer command pool
     allocInfo.commandBufferCount = 1;
 
     // Allocate command buffer from pool
@@ -977,11 +980,12 @@ void Volcano::copyBuffer(vk::Queue& transferQueue, vk::CommandPool& transferComm
     submitInfo.pCommandBuffers = &transferCommandBuffer;
     
     // Submit transfer command to transfer queue and wait till it finish
-    transferQueue.submit(submitInfo);
-    transferQueue.waitIdle();
+    // Graphics queue is same as transfer queue
+    Volcano::graphicsQueue.submit(submitInfo);
+    Volcano::graphicsQueue.waitIdle();
 
     // Free command buffer back to pool
-    Volcano::device->freeCommandBuffers(transferCommandPool, transferCommandBuffer);
+    Volcano::device->freeCommandBuffers(Volcano::graphicsCommandPool, transferCommandBuffer);
 }
 
 #ifdef DEBUG
