@@ -91,7 +91,7 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
     
-    mesh = std::make_shared<Mesh>(Volcano::device.get(), meshVertex);
+    mesh = std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices);
    
     Volcano::createCommandBuffer();
     Volcano::recordCommands();

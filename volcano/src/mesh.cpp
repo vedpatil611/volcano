@@ -4,16 +4,19 @@
 #include "iostream"
 #include "volcano.h"
 
-Mesh::Mesh(vk::Device& device, std::vector<Vertex>& vertices)
-    : device(device), vertexCount(vertices.size())
+Mesh::Mesh(vk::Device& device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
+    : device(device), vertexCount(vertices.size()), indexCount(indices.size())
 {
     createVertexBuffer(vertices);
+    createIndexBuffer(indices);
 }
 
 Mesh::~Mesh()
 {
     device.destroyBuffer(vertexBuffer);
     device.freeMemory(vertexBufferMemory);
+    device.destroyBuffer(indexBuffer);
+    device.freeMemory(indexBufferMemory);
 }
 
 
@@ -41,7 +44,6 @@ void Mesh::createVertexBuffer(std::vector<Vertex>& vertices)
     Volcano::createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
         vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer, vertexBufferMemory);        // local bit means memory is on gpu and only accescible by it
 
-
     Volcano::copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
     // Clean up staging buffer
@@ -49,3 +51,26 @@ void Mesh::createVertexBuffer(std::vector<Vertex>& vertices)
     device.freeMemory(stagingBufferMemory);
 }
 
+void Mesh::createIndexBuffer(std::vector<uint32_t>& indices)
+{
+    vk::DeviceSize bufferSize = sizeof(uint32_t) * indices.size();
+
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
+
+    Volcano::createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, 
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+            stagingBuffer, stagingBufferMemory);
+
+    void* data = device.mapMemory(stagingBufferMemory, 0, bufferSize);
+    memcpy(data, indices.data(), bufferSize);
+    device.unmapMemory(stagingBufferMemory);
+
+    Volcano::createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+        vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer, indexBufferMemory);
+
+    Volcano::copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+    device.destroyBuffer(stagingBuffer);
+    device.freeMemory(stagingBufferMemory);
+}

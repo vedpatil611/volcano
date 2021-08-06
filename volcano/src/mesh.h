@@ -9,14 +9,20 @@ class Mesh
 private:
     int vertexCount;
     vk::Buffer vertexBuffer;
-    vk::Device& device;
     vk::DeviceMemory vertexBufferMemory;
+
+    int indexCount;
+    vk::Buffer indexBuffer;
+    vk::DeviceMemory indexBufferMemory;
+
+    vk::Device& device;
 public:
-    Mesh(vk::Device& device, std::vector<Vertex>& vertices);
+    Mesh(vk::Device& device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
     ~Mesh();
 
     inline int getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
 private:
     void createVertexBuffer(std::vector<Vertex>& vertices);
+    void createIndexBuffer(std::vector<uint32_t>& indices);
 };
