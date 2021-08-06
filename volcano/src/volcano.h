@@ -69,7 +69,7 @@ class Volcano
         inline static VkDebugUtilsMessengerEXT callback;
 #endif
         // Scene object
-        inline static std::shared_ptr<Mesh> mesh; 
+        inline static std::vector<std::shared_ptr<Mesh>> meshList; 
     public:
         // Initalize vulkan instance
         static void init(Window* window);

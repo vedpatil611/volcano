@@ -74,12 +74,19 @@ void Volcano::init(Window* window)
 
     // Vertex data
     std::vector<Vertex> meshVertex = {
-        {{  0.4f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
-        {{  0.4f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
-        {{ -0.4f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
-        {{ -0.4f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
+        {{ -0.1f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
+        {{ -0.1f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
+        {{ -0.9f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
+        {{ -0.9f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
     };
-
+    
+    std::vector<Vertex> meshVertex2 = {
+        {{ 0.9f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
+        {{ 0.9f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
+        {{ 0.1f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
+        {{ 0.1f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
+    };
+    
     std::vector<uint32_t> meshIndices = {
         0, 1, 2, 
         2, 3, 0
@@ -91,7 +98,8 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
     
-    mesh = std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices);
+    meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices));
+    meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex2, meshIndices));
    
     Volcano::createCommandBuffer();
     Volcano::recordCommands();
@@ -836,19 +844,21 @@ void Volcano::recordCommands()
             {
                 // bind pipeline to be used in command buffer
                 Volcano::commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, Volcano::graphicsPipeline);
+               
+                for(size_t j = 0; j < meshList.size(); ++j)
+                {
+                    // Bind vertex buffer
+                    vk::Buffer vertexBuffer[] = { meshList[j]->getVertexBuffer() };            // list of buffer to bind
+                    vk::DeviceSize offsets[] = { 0 };                                   // list of offsets
+                    Volcano::commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
                 
-                // Bind vertex buffer
-                vk::Buffer vertexBuffer[] = { mesh->getVertexBuffer() };            // list of buffer to bind
-                vk::DeviceSize offsets[] = { 0 };                                   // list of offsets
-                Volcano::commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
+                    // Bind index buffer
+                    Volcano::commandBuffers[i].bindIndexBuffer(meshList[j]->getIndexBuffer(), 0, vk::IndexType::eUint32);
                 
-                // Bind index buffer
-                Volcano::commandBuffers[i].bindIndexBuffer(mesh->getIndexBuffer(), 0, vk::IndexType::eUint32);
-                
-                // Execute pipline
-                Volcano::commandBuffers[i].drawIndexed(mesh->getIndexCount(), 1, 0, 0, 0);
+                    // Execute pipline
+                    Volcano::commandBuffers[i].drawIndexed(meshList[j]->getIndexCount(), 1, 0, 0, 0);
+                }
             }
-
             Volcano::commandBuffers[i].endRenderPass();
         }
         
