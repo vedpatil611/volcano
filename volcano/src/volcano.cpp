@@ -54,7 +54,8 @@ void Volcano::init(Window* window)
     }
 
 #ifdef DEBUG
-    {   // Setup debug messenger
+    {   
+        // Setup debug messenger
         auto createInfo = vk::DebugUtilsMessengerCreateInfoEXT(
                 vk::DebugUtilsMessengerCreateFlagsEXT(),
                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
@@ -126,7 +127,6 @@ void Volcano::destroy()
 
 void Volcano::draw()
 {
-    
     // Wait for fence to signal
     Volcano::device->waitForFences(Volcano::drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
     // Manually reset closed fences
@@ -134,7 +134,20 @@ void Volcano::draw()
     
     // 1. Get next available image to draw to
     uint32_t index;
-    index = Volcano::device->acquireNextImageKHR(Volcano::swapChain, std::numeric_limits<uint64_t>::max(), Volcano::imageAvailable[Volcano::currentFrame], nullptr).value;
+    try 
+    {
+        index = Volcano::device->acquireNextImageKHR(Volcano::swapChain, std::numeric_limits<uint64_t>::max(), Volcano::imageAvailable[Volcano::currentFrame], nullptr).value;
+    }
+    catch(vk::OutOfDateKHRError err)
+    {
+        Volcano::framebufferResized = true;
+        Volcano::recreateSwapChain();
+        return;
+    }
+    catch(vk::SystemError& err)
+    {
+        throw std::runtime_error("Failed to aquire swapchain image");
+    }
 
     // 2. Submit command buffer to graphics queue
     // Queue submit info
@@ -170,8 +183,29 @@ void Volcano::draw()
     presentInfo.pSwapchains = &Volcano::swapChain;
     presentInfo.pImageIndices = &index;
 
-    if(Volcano::presentQueue.presentKHR(presentInfo) != vk::Result::eSuccess)
-        throw std::runtime_error("Failed to create r");
+    vk::Result presentResult;
+    try 
+    {
+        presentResult = Volcano::presentQueue.presentKHR(presentInfo);
+    }
+    catch(vk::OutOfDateKHRError& err)
+    {
+        presentResult = vk::Result::eErrorOutOfDateKHR;
+    }
+    catch(vk::SystemError& err)
+    {
+        throw std::runtime_error(err.what());
+    }
+
+    if(presentResult == vk::Result::eSuboptimalKHR || presentResult == vk::Result::eErrorOutOfDateKHR || framebufferResized)
+    {
+        Volcano::framebufferResized = false;
+        Volcano::recreateSwapChain();
+        return;
+    }
+
+    // if(Volcano::presentQueue.presentKHR(presentInfo) != vk::Result::eSuccess)
+    //     throw std::runtime_error("Failed to create r");
 
     currentFrame = (currentFrame + 1) % MAX_FRAME_DRAWS;
 }
@@ -424,17 +458,16 @@ void Volcano::createSwapChain()
 
     // Retrive list of swapchain images
     auto swapchainImages = Volcano::device->getSwapchainImagesKHR(Volcano::swapChain);
-    for(vk::Image image: swapchainImages)
+    Volcano::swapChainImages.resize(swapchainImages.size());
+
+    for(size_t i = 0; i < swapchainImages.size(); ++i)
     {
         // Store image handle
         SwapChainImage swapChainImage = {};
-        swapChainImage.image = image;
+        Volcano::swapChainImages[i].image = swapchainImages[i];
 
         // Create image view
-        swapChainImage.imageView = Volcano::createImageView(image, Volcano::swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
-
-        // Add to swapchain image list
-        swapChainImages.push_back(swapChainImage);
+        Volcano::swapChainImages[i].imageView = Volcano::createImageView(swapchainImages[i], Volcano::swapChainImageFormat, vk::ImageAspectFlagBits::eColor);
     }
 }
 
@@ -442,7 +475,7 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
 {
     vk::ImageViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.image = image;                                   // Image to create view for
-    viewCreateInfo.viewType = vk::ImageViewType::e2D;                // Type of image
+    viewCreateInfo.viewType = vk::ImageViewType::e2D;               // Type of image
     viewCreateInfo.format = format;                                 // Format of image data
     viewCreateInfo.components.r = vk::ComponentSwizzle::eIdentity;  // Allows remaping of rgba components  
     viewCreateInfo.components.g = vk::ComponentSwizzle::eIdentity;    
@@ -454,7 +487,7 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
     viewCreateInfo.subresourceRange.baseMipLevel = 0;               // Start mipmap level
     viewCreateInfo.subresourceRange.levelCount = 1;                 // No of mipmap layers
     viewCreateInfo.subresourceRange.baseArrayLayer = 0;             // Start array level to view from
-    viewCreateInfo.subresourceRange.layerCount = 1;                  // No of array layers
+    viewCreateInfo.subresourceRange.layerCount = 1;                 // No of array layers
 
     try 
     {
@@ -614,14 +647,14 @@ void Volcano::createGraphicsPipeline()
     viewportStateInfo.pScissors = &scissor;
 
     // Dynamic state
-    //std::vector<vk::DynamicState> dynamicStateEnable = { 
-        //vk::DynamicState::eViewport,                                        // Dynamic viewport can be resized with command buffer
-        //vk::DynamicState::eScissor                                          // Resize with command buffer
-    //};
+    std::vector<vk::DynamicState> dynamicStateEnable = { 
+        vk::DynamicState::eViewport,                                        // Dynamic viewport can be resized with command buffer
+        vk::DynamicState::eScissor                                          // Resize with command buffer
+    };
 
-    //vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};         // Set dynamic state data
-    //dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnable.size());
-    //dynamicStateCreateInfo.pDynamicStates = dynamicStateEnable.data();
+    vk::PipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};         // Set dynamic state data
+    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnable.size());
+    dynamicStateCreateInfo.pDynamicStates = dynamicStateEnable.data();
 
     // Rasterizer
     // Convert primitive to fragment
@@ -801,7 +834,7 @@ void Volcano::recordCommands()
     
     vk::CommandBufferBeginInfo bufferBeginInfo = {};
     // No longer needed because of fences
-    //bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;   // Buffer submit whem already submmited and awaiting execution
+    //bufferBeginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;     // Buffer submit whem already submmited and awaiting execution
 
     // Info about how to begin render pass (only for graphics)
     vk::RenderPassBeginInfo renderPassBeginInfo = {};
@@ -995,14 +1028,26 @@ void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize buffer
 
 void Volcano::recreateSwapChain() 
 {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window->getWindow(), &width, &height);
+
+    while(width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(window->getWindow(), &width, &height);
+        glfwWaitEvents();
+    }
+
     Volcano::device->waitIdle();
-    
+   
+    Volcano::cleanupSwapChain();
+
     Volcano::createSwapChain();
     Volcano::createRenderPass();
     Volcano::createGraphicsPipeline();
     Volcano::createFramebuffers();
-    Volcano::createCommandPool();
+    //Volcano::createCommandPool();
     Volcano::createCommandBuffer();
+    Volcano::recordCommands();
 }
 
 void Volcano::cleanupSwapChain()

@@ -16,6 +16,9 @@ class Window;
 class Volcano
 {
     private:
+        // This flag tells if frame buffer was resized
+        inline static bool framebufferResized = false;
+        // Current frame to be drawn
         inline static int currentFrame = 0;
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
@@ -82,6 +85,8 @@ class Volcano
                 vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
         // copy buffer
         static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        // get window resized flag reference
+        static bool& getFramebufferResized() { return Volcano::framebufferResized; }
     private:
         // Query and select logical device
         static void pickPhysicalDevice();

@@ -18,4 +18,6 @@ public:
     inline GLFWwindow* getWindow() const { return m_Window; }
     inline int getWidth() const { return m_Width; }
     inline int getHeight() const { return m_Height; }
+
+    inline static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 };

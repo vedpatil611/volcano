@@ -2,6 +2,7 @@
 #include "window.h"
 
 #include <stdexcept>
+#include "volcano.h"
 
 Window::Window(const char* name, int width, int height)
     :m_Width(width), m_Height(height)
@@ -11,7 +12,7 @@ Window::Window(const char* name, int width, int height)
 
     // Set to no api for vulkan
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     m_Window = glfwCreateWindow(width, height, name, nullptr, nullptr);
     if(!m_Window)
@@ -21,6 +22,9 @@ Window::Window(const char* name, int width, int height)
     }
 
     glfwMakeContextCurrent(m_Window);
+
+    glfwSetWindowUserPointer(m_Window, this);
+    glfwSetFramebufferSizeCallback(m_Window, &Window::framebufferResizeCallback);
 }
 
 Window::~Window()
@@ -37,4 +41,14 @@ void Window::pollEvents()
 bool Window::shouldClose() const
 {
     return glfwWindowShouldClose(m_Window);
+}
+
+void Window::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+{
+    Window* currentWindow = reinterpret_cast<Window*>(glfwGetWindowUserPointer(window));
+
+    currentWindow->m_Width = width;
+    currentWindow->m_Height = height;
+
+    Volcano::getFramebufferResized() = true;
 }
