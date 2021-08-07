@@ -103,7 +103,7 @@ class Volcano
         static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentMode);
         // Pick swap extent
         static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
-        // Create swapchain
+        // Create swapchain and image view too
         static void createSwapChain();
         // Create image view
         static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
@@ -123,9 +123,12 @@ class Volcano
         static void recordCommands();
         // Create semaphores for synchronization
         static void createSynchronization();
-
+        // 
         static uint32_t findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties);
-
+        // Swap chain recreation
+        static void recreateSwapChain();
+        // Destory swapchain
+        static void cleanupSwapChain();
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

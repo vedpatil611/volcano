@@ -115,17 +115,8 @@ void Volcano::destroy()
         Volcano::device->destroySemaphore(Volcano::imageAvailable[i]);
         Volcano::device->destroyFence(Volcano::drawFences[i]);
     }
+    Volcano::cleanupSwapChain();
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
-    for(auto& framebuffer: Volcano::swapChainFramebuffers)
-        Volcano::device->destroyFramebuffer(framebuffer);
-    Volcano::device->destroyPipeline(Volcano::graphicsPipeline);
-    Volcano::device->destroyPipelineLayout(Volcano::pipelineLayout);
-    Volcano::device->destroyRenderPass(Volcano::renderPass);
-    for(auto& image: swapChainImages)
-    {
-        Volcano::device->destroyImageView(image.imageView);
-    }
-    Volcano::device->destroySwapchainKHR(Volcano::swapChain);
     Volcano::instance->destroySurfaceKHR(Volcano::surface);
 
 #ifdef DEBUG
@@ -848,9 +839,9 @@ void Volcano::recordCommands()
                 for(size_t j = 0; j < meshList.size(); ++j)
                 {
                     // Bind vertex buffer
-                    vk::Buffer vertexBuffer[] = { meshList[j]->getVertexBuffer() };            // list of buffer to bind
-                    vk::DeviceSize offsets[] = { 0 };                                   // list of offsets
-                    Volcano::commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);   // bind buffer before drawing
+                    vk::Buffer vertexBuffer[] = { meshList[j]->getVertexBuffer() };             // list of buffer to bind
+                    vk::DeviceSize offsets[] = { 0 };                                           // list of offsets
+                    Volcano::commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffer, offsets);  // bind buffer before drawing
                 
                     // Bind index buffer
                     Volcano::commandBuffers[i].bindIndexBuffer(meshList[j]->getIndexBuffer(), 0, vk::IndexType::eUint32);
@@ -1000,6 +991,34 @@ void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize buffer
 
     // Free command buffer back to pool
     Volcano::device->freeCommandBuffers(Volcano::graphicsCommandPool, transferCommandBuffer);
+}
+
+void Volcano::recreateSwapChain() 
+{
+    Volcano::device->waitIdle();
+    
+    Volcano::createSwapChain();
+    Volcano::createRenderPass();
+    Volcano::createGraphicsPipeline();
+    Volcano::createFramebuffers();
+    Volcano::createCommandPool();
+    Volcano::createCommandBuffer();
+}
+
+void Volcano::cleanupSwapChain()
+{
+    // Destroy all objects depended by swapchain first
+    for(auto& framebuffer: Volcano::swapChainFramebuffers)
+        Volcano::device->destroyFramebuffer(framebuffer);
+
+    Volcano::device->freeCommandBuffers(Volcano::graphicsCommandPool, Volcano::commandBuffers);
+    Volcano::device->destroyPipeline(Volcano::graphicsPipeline);
+    Volcano::device->destroyPipelineLayout(Volcano::pipelineLayout);
+    Volcano::device->destroyRenderPass(Volcano::renderPass);
+    for(auto& imageView: Volcano::swapChainImages)
+        Volcano::device->destroyImageView(imageView.imageView);
+
+    Volcano::device->destroySwapchainKHR(Volcano::swapChain);
 }
 
 #ifdef DEBUG
