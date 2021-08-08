@@ -20,6 +20,12 @@ class Volcano
         inline static bool framebufferResized = false;
         // Current frame to be drawn
         inline static int currentFrame = 0;
+        // MVP struct
+        inline static struct MVP {
+            glm::mat4 proj;
+            glm::mat4 view;
+            glm::mat4 model;
+        } mvp;
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
         // GPU device
