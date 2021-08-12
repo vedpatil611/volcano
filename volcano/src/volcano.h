@@ -25,6 +25,8 @@ class Volcano
             glm::mat4 proj;
             glm::mat4 view;
             glm::mat4 model;
+
+            MVP() : proj(1.0f), view(1.0f), model(1.0f) {}
         } mvp;
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
@@ -68,6 +70,16 @@ class Volcano
         inline static std::vector<vk::Semaphore> renderFinished;
         // Fences for cpu-gpu sync
         inline static std::vector<vk::Fence> drawFences;
+        // Layout of descriptor set
+        inline static vk::DescriptorSetLayout descriptorSetLayout;
+        // Descriptor Pool hold raw data for decriptor set
+        inline static vk::DescriptorPool descriptorPool;
+        
+        inline static std::vector<vk::DescriptorSet> descriptorSets;
+        // array of uniform buffer 
+        inline static std::vector<vk::Buffer> uniformBuffer;
+        // array of memory for uniform buffer
+        inline static std::vector<vk::DeviceMemory> uniformBufferMemory;
         // Pointer to window
         inline static Window* window;
 // Validation layer only exist for debug build
@@ -120,6 +132,8 @@ class Volcano
         static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
         // Create render pass
         static void createRenderPass();
+        // Create descriptor set layout
+        static void createDescriptorSetLayout();
         // Create graphics pipeline layout (set up all imp stuff)
         static void createGraphicsPipeline();
         // Create shader modules
@@ -140,6 +154,14 @@ class Volcano
         static void recreateSwapChain();
         // Destory swapchain
         static void cleanupSwapChain();
+        // Crete uniform buffer
+        static void createUniformBuffer();
+        // create descriptor pool
+        static void createDescriptorPool();
+        // create descriptor sets
+        static void createDescriptorSets();
+        // update uniform values
+        static void updateUniformBuffer(uint32_t imageIndex);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

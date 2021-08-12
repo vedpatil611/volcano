@@ -3,6 +3,7 @@
 
 #include <array>
 #include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -72,6 +73,17 @@ void Volcano::init(Window* window)
     Volcano::createSurface();
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
+    Volcano::createSwapChain();
+    Volcano::createRenderPass();
+    Volcano::createDescriptorSetLayout();
+    Volcano::createGraphicsPipeline();
+    Volcano::createFramebuffers();
+    Volcano::createCommandPool();
+ 
+    mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
+    mvp.view = glm::lookAt(glm::vec3(3.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    mvp.model = glm::mat4(1.0f);
+    mvp.proj[1][1] *= -1;
 
     // Vertex data
     std::vector<Vertex> meshVertex = {
@@ -93,16 +105,13 @@ void Volcano::init(Window* window)
         2, 3, 0
     };
 
-    Volcano::createSwapChain();
-    Volcano::createRenderPass();
-    Volcano::createGraphicsPipeline();
-    Volcano::createFramebuffers();
-    Volcano::createCommandPool();
-    
     meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices));
     meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex2, meshIndices));
    
     Volcano::createCommandBuffer();
+    Volcano::createUniformBuffer();
+    Volcano::createDescriptorPool();
+    Volcano::createDescriptorSets();
     Volcano::recordCommands();
     Volcano::createSynchronization();
 }
@@ -115,6 +124,13 @@ void Volcano::destroy()
         Volcano::device->destroySemaphore(Volcano::renderFinished[i]);
         Volcano::device->destroySemaphore(Volcano::imageAvailable[i]);
         Volcano::device->destroyFence(Volcano::drawFences[i]);
+    }
+
+    Volcano::device->destroyDescriptorSetLayout(Volcano::descriptorSetLayout);
+    for(size_t i = 0; i < uniformBuffer.size(); ++i)
+    {
+        Volcano::device->destroyBuffer(uniformBuffer[i]);
+        Volcano::device->freeMemory(uniformBufferMemory[i]);
     }
     Volcano::cleanupSwapChain();
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
@@ -148,6 +164,8 @@ void Volcano::draw()
     {
         throw std::runtime_error("Failed to aquire swapchain image");
     }
+    
+    Volcano::updateUniformBuffer(index);
 
     // 2. Submit command buffer to graphics queue
     // Queue submit info
@@ -567,6 +585,32 @@ void Volcano::createRenderPass()
     }
 }
 
+void Volcano::createDescriptorSetLayout()
+{
+    // Uniform binding description
+    vk::DescriptorSetLayoutBinding uniformBinding = {};
+    uniformBinding.binding = 0;                                             // binding point in shaders
+    uniformBinding.descriptorType = vk::DescriptorType::eUniformBuffer;     // descriptor type
+    uniformBinding.descriptorCount = 1;                                     // just 1 struct of mvp
+    uniformBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;           // mvp struct bound in vertex shader
+    uniformBinding.pImmutableSamplers = nullptr;
+
+    // create descriptor set layout with given binding
+    vk::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+    layoutCreateInfo.bindingCount = 1;                                      // just 1 binding for now
+    layoutCreateInfo.pBindings = &uniformBinding;                           // pointer to array of bindings
+    
+    // create descriptor set layout
+    try
+    {
+        Volcano::descriptorSetLayout = Volcano::device->createDescriptorSetLayout(layoutCreateInfo);
+    }
+    catch(vk::SystemError& err)
+    {
+        throw std::runtime_error("Failed to create descriptor set layout");
+    }
+}
+
 void Volcano::createGraphicsPipeline()
 {
     // read compiled code
@@ -592,7 +636,6 @@ void Volcano::createGraphicsPipeline()
             "main"
         }
     };
-
 
     // Binding description data for single vertex as whole
     vk::VertexInputBindingDescription bindingDescription = {};
@@ -664,7 +707,7 @@ void Volcano::createGraphicsPipeline()
     rasterizerInfo.polygonMode = vk::PolygonMode::eFill;                        // Fill entire polygon
     rasterizerInfo.lineWidth = 1.0f;                                            // Line thickness (need gpu extension for line width other than 1)
     rasterizerInfo.cullMode = vk::CullModeFlagBits::eBack;                      // Do not draw useless back face
-    rasterizerInfo.frontFace = vk::FrontFace::eClockwise;                       // Clockwise indices are front. Don't draw useless anti clockwise back face
+    rasterizerInfo.frontFace = vk::FrontFace::eCounterClockwise;                // Clockwise indices are front. Don't draw useless anti clockwise back face
     rasterizerInfo.depthBiasEnable = VK_FALSE;                                  // true to overcome shadow acne
 
     // Multisampling
@@ -699,8 +742,8 @@ void Volcano::createGraphicsPipeline()
     
     // Pipeline actual layout (layout of descriptor sets)
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.setLayoutCount = 0;
-    pipelineLayoutInfo.pSetLayouts = nullptr;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &Volcano::descriptorSetLayout;
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -879,6 +922,10 @@ void Volcano::recordCommands()
                     // Bind index buffer
                     Volcano::commandBuffers[i].bindIndexBuffer(meshList[j]->getIndexBuffer(), 0, vk::IndexType::eUint32);
                 
+                    // bind descriptor sets
+                    Volcano::commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, Volcano::pipelineLayout, 0,
+                        Volcano::descriptorSets[i], nullptr);
+
                     // Execute pipline
                     Volcano::commandBuffers[i].drawIndexed(meshList[j]->getIndexCount(), 1, 0, 0, 0);
                 }
@@ -980,6 +1027,8 @@ uint32_t Volcano::findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyF
             return i;
         }
     }
+
+    return 0;
 }
 
 void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize)
@@ -1064,6 +1113,92 @@ void Volcano::cleanupSwapChain()
         Volcano::device->destroyImageView(imageView.imageView);
 
     Volcano::device->destroySwapchainKHR(Volcano::swapChain);
+}
+
+void Volcano::createUniformBuffer() 
+{
+    // Uniform buffer size
+    vk::DeviceSize bufferSize = sizeof(MVP);
+    
+    // one uniform buffer for each image
+    Volcano::uniformBuffer.resize(Volcano::swapChainImages.size());
+    Volcano::uniformBufferMemory.resize(Volcano::swapChainImages.size());
+    
+    // Create uniform buffer
+    for (size_t i = 0; i < Volcano::swapChainImages.size(); ++i)
+    {
+        createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
+            vk::MemoryPropertyFlagBits::eHostVisible, uniformBuffer[i], uniformBufferMemory[i]);
+    }
+}
+
+void Volcano::createDescriptorPool()
+{
+    vk::DescriptorPoolSize poolSize = {};
+    poolSize.type = vk::DescriptorType::eUniformBuffer;
+    poolSize.descriptorCount = static_cast<uint32_t>(uniformBuffer.size());
+
+    vk::DescriptorPoolCreateInfo poolCreateInfo = {};
+    poolCreateInfo.maxSets = static_cast<uint32_t>(uniformBuffer.size());
+    poolCreateInfo.poolSizeCount = 1;
+    poolCreateInfo.pPoolSizes = &poolSize;
+
+    try 
+    {
+        Volcano::descriptorPool = Volcano::device->createDescriptorPool(poolCreateInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to create descriptor pool");
+    }
+}
+
+void Volcano::createDescriptorSets()
+{
+    std::vector<vk::DescriptorSetLayout> setLayouts(Volcano::uniformBuffer.size(), Volcano::descriptorSetLayout);
+
+    // alloc info
+    vk::DescriptorSetAllocateInfo setAllocInfo = {};
+    setAllocInfo.descriptorPool = Volcano::descriptorPool;
+    setAllocInfo.descriptorSetCount = static_cast<uint32_t>(Volcano::uniformBuffer.size());
+    setAllocInfo.pSetLayouts = setLayouts.data();
+
+    try
+    {
+        Volcano::descriptorSets = Volcano::device->allocateDescriptorSets(setAllocInfo);
+    }
+    catch(vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to allocate descriptor sets");
+    }
+
+    // update all descriptor set buffer binding
+    for(size_t i = 0; i < Volcano::uniformBuffer.size(); ++i)
+    {
+        // Buffer info and data offset info 
+        vk::DescriptorBufferInfo mvpBufferInfo = {};
+        mvpBufferInfo.buffer = Volcano::uniformBuffer[i];                   // Buffer to get data from
+        mvpBufferInfo.offset = 0;                                           // Start at
+        mvpBufferInfo.range = sizeof(MVP);
+
+        // data about connection between binding and buffer
+        vk::WriteDescriptorSet mvpSetWrite = {};
+        mvpSetWrite.dstSet = Volcano::descriptorSets[i];                    // descriptor set to update
+        mvpSetWrite.dstBinding = 0;                                         // layout (binding = 0)
+        mvpSetWrite.dstArrayElement = 0;                                    // if uniform is array then index to update
+        mvpSetWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+        mvpSetWrite.descriptorCount = 1;                                    // Amount to update
+        mvpSetWrite.pBufferInfo = &mvpBufferInfo;
+
+        Volcano::device->updateDescriptorSets(mvpSetWrite, nullptr);
+    }
+}
+
+void Volcano::updateUniformBuffer(uint32_t imageIndex)
+{
+    void* data = Volcano::device->mapMemory(Volcano::uniformBufferMemory[imageIndex], 0, sizeof(MVP));
+    memcpy(data, &mvp, sizeof(MVP));
+    Volcano::device->unmapMemory(Volcano::uniformBufferMemory[imageIndex]);
 }
 
 #ifdef DEBUG
