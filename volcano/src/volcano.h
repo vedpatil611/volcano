@@ -98,6 +98,8 @@ class Volcano
         static void destroy();
         // Render to screen
         static void draw();
+        // update mvp models
+        static void updateModel(const glm::mat4& newModel);
         // Create buffer based on given flag
         static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
                 vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);

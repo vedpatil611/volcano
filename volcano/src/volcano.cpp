@@ -228,6 +228,11 @@ void Volcano::draw()
     currentFrame = (currentFrame + 1) % MAX_FRAME_DRAWS;
 }
 
+void Volcano::updateModel(const glm::mat4& newModel)
+{
+    mvp.model = newModel;
+}
+
 void Volcano::pickPhysicalDevice()
 {
     auto devices = instance->enumeratePhysicalDevices();
