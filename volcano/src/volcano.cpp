@@ -125,7 +125,9 @@ void Volcano::destroy()
         Volcano::device->destroySemaphore(Volcano::imageAvailable[i]);
         Volcano::device->destroyFence(Volcano::drawFences[i]);
     }
-
+    
+    //Volcano::device->freeDescriptorSets(Volcano::descriptorPool, Volcano::descriptorSets);
+    Volcano::device->destroyDescriptorPool(Volcano::descriptorPool);
     Volcano::device->destroyDescriptorSetLayout(Volcano::descriptorSetLayout);
     for(size_t i = 0; i < uniformBuffer.size(); ++i)
     {
@@ -1133,7 +1135,7 @@ void Volcano::createUniformBuffer()
     for (size_t i = 0; i < Volcano::swapChainImages.size(); ++i)
     {
         createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
-            vk::MemoryPropertyFlagBits::eHostVisible, uniformBuffer[i], uniformBufferMemory[i]);
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffer[i], uniformBufferMemory[i]);
     }
 }
 
@@ -1195,8 +1197,12 @@ void Volcano::createDescriptorSets()
         mvpSetWrite.descriptorCount = 1;                                    // Amount to update
         mvpSetWrite.pBufferInfo = &mvpBufferInfo;
 
+        // update descripter set with new buffer binding info
         Volcano::device->updateDescriptorSets(mvpSetWrite, nullptr);
     }
+
+    //for (auto& layout: setLayouts)
+        //Volcano::device->destroyDescriptorSetLayout(layout);
 }
 
 void Volcano::updateUniformBuffer(uint32_t imageIndex)
