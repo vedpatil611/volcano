@@ -4,9 +4,16 @@
 #include <vulkan/vulkan.hpp>
 #include "vertex.h"
 
+struct UBOModel 
+{
+    glm::mat4 model;    
+};
+
 class Mesh
 {
 private:
+    UBOModel uboModel;
+
     int vertexCount;
     vk::Buffer vertexBuffer;
     vk::DeviceMemory vertexBufferMemory;
@@ -19,6 +26,9 @@ private:
 public:
     Mesh(vk::Device& device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
     ~Mesh();
+
+    void setModel(const glm::mat4& model);
+    inline UBOModel getModel() const { return uboModel; }
 
     inline int getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };

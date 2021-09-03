@@ -9,6 +9,8 @@ Mesh::Mesh(vk::Device& device, std::vector<Vertex>& vertices, std::vector<uint32
 {
     createVertexBuffer(vertices);
     createIndexBuffer(indices);
+
+    uboModel.model = glm::mat4(1.0f);
 }
 
 Mesh::~Mesh()
@@ -19,6 +21,10 @@ Mesh::~Mesh()
     device.freeMemory(indexBufferMemory);
 }
 
+void Mesh::setModel(const glm::mat4 &model) 
+{
+    uboModel.model = model;
+}
 
 void Mesh::createVertexBuffer(std::vector<Vertex>& vertices)
 {

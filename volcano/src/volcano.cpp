@@ -82,7 +82,6 @@ void Volcano::init(Window* window)
  
     mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
     mvp.view = glm::lookAt(glm::vec3(3.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    mvp.model = glm::mat4(1.0f);
     mvp.proj[1][1] *= -1;
 
     // Vertex data
@@ -232,7 +231,7 @@ void Volcano::draw()
 
 void Volcano::updateModel(const glm::mat4& newModel)
 {
-    mvp.model = newModel;
+    //mvp.model = newModel;
 }
 
 void Volcano::pickPhysicalDevice()
@@ -1125,7 +1124,7 @@ void Volcano::cleanupSwapChain()
 void Volcano::createUniformBuffer() 
 {
     // Uniform buffer size
-    vk::DeviceSize bufferSize = sizeof(MVP);
+    vk::DeviceSize bufferSize = sizeof(UBOViewProj);
     
     // one uniform buffer for each image
     Volcano::uniformBuffer.resize(Volcano::swapChainImages.size());
@@ -1186,7 +1185,7 @@ void Volcano::createDescriptorSets()
         vk::DescriptorBufferInfo mvpBufferInfo = {};
         mvpBufferInfo.buffer = Volcano::uniformBuffer[i];                   // Buffer to get data from
         mvpBufferInfo.offset = 0;                                           // Start at
-        mvpBufferInfo.range = sizeof(MVP);
+        mvpBufferInfo.range = sizeof(UBOViewProj);
 
         // data about connection between binding and buffer
         vk::WriteDescriptorSet mvpSetWrite = {};
@@ -1207,8 +1206,8 @@ void Volcano::createDescriptorSets()
 
 void Volcano::updateUniformBuffer(uint32_t imageIndex)
 {
-    void* data = Volcano::device->mapMemory(Volcano::uniformBufferMemory[imageIndex], 0, sizeof(MVP));
-    memcpy(data, &mvp, sizeof(MVP));
+    void* data = Volcano::device->mapMemory(Volcano::uniformBufferMemory[imageIndex], 0, sizeof(UBOViewProj));
+    memcpy(data, &mvp, sizeof(UBOViewProj));
     Volcano::device->unmapMemory(Volcano::uniformBufferMemory[imageIndex]);
 }
 

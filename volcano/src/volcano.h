@@ -21,12 +21,11 @@ class Volcano
         // Current frame to be drawn
         inline static int currentFrame = 0;
         // MVP struct
-        inline static struct MVP {
+        inline static struct UBOViewProj {
             glm::mat4 proj;
             glm::mat4 view;
-            glm::mat4 model;
 
-            MVP() : proj(1.0f), view(1.0f), model(1.0f) {}
+            UBOViewProj() : proj(1.0f), view(1.0f) {}
         } mvp;
         // UniqueInstance destruction is done automatically
         inline static vk::UniqueInstance instance;
