@@ -16,6 +16,16 @@ class Window;
 
 class Volcano
 {
+    public:
+        // Initalize vulkan instance
+        static void init(Window* window);
+        static void destroy();
+        static void draw();
+        static void updateModel(int modelId, const glm::mat4& newModel);
+        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
+            vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        static bool& getFramebufferResized() { return Volcano::framebufferResized; }
     private:
         inline static bool framebufferResized = false;
         // Current frame to be drawn
@@ -85,16 +95,7 @@ class Volcano
 #endif
         // Scene object
         inline static std::vector<std::shared_ptr<Mesh>> meshList; 
-    public:
-        // Initalize vulkan instance
-        static void init(Window* window);
-        static void destroy();
-        static void draw();
-        static void updateModel(const glm::mat4& newModel);
-        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
-                vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
-        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
-        static bool& getFramebufferResized() { return Volcano::framebufferResized; }
+    
     private:
         static void pickPhysicalDevice();
         static bool isDeviceSuitable(const vk::PhysicalDevice& device);

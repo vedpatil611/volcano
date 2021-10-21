@@ -81,22 +81,14 @@ void Volcano::init(Window* window)
     Volcano::createCommandPool();
  
     mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
-    mvp.view = glm::lookAt(glm::vec3(3.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    mvp.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     mvp.proj[1][1] *= -1;
 
-    // Vertex data
     std::vector<Vertex> meshVertex = {
-        {{ -0.1f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
-        {{ -0.1f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
-        {{ -0.9f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
-        {{ -0.9f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
-    };
-    
-    std::vector<Vertex> meshVertex2 = {
-        {{ 0.9f, -0.4f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
-        {{ 0.9f,  0.4f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
-        {{ 0.1f,  0.4f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
-        {{ 0.1f, -0.4f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
+        {{  1.0f, -1.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},   // 0
+        {{  1.0f,  1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},   // 1
+        {{ -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},   // 2
+        {{ -1.0f, -1.0f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }}    // 3
     };
     
     std::vector<uint32_t> meshIndices = {
@@ -105,11 +97,11 @@ void Volcano::init(Window* window)
     };
 
     meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices));
-    meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex2, meshIndices));
+    meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices));
    
-    glm::mat4 meshModel = meshList[0]->getModel().model;
+   /* glm::mat4 meshModel = meshList[0]->getModel().model;
     meshModel = glm::rotate(meshModel, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    meshList[0]->setModel(meshModel);
+    meshList[0]->setModel(meshModel);*/
 
     Volcano::createCommandBuffer();
     Volcano::allocateDynamicBufferTransferSpace();
@@ -240,9 +232,11 @@ void Volcano::draw()
     currentFrame = (currentFrame + 1) % MAX_FRAME_DRAWS;
 }
 
-void Volcano::updateModel(const glm::mat4& newModel)
+void Volcano::updateModel(int modelId, const glm::mat4& newModel)
 {
-    //mvp.model = newModel;
+    if (modelId >= meshList.size()) return;
+
+    meshList[modelId]->setModel(newModel);
 }
 
 void Volcano::pickPhysicalDevice()
@@ -1283,6 +1277,7 @@ void Volcano::updateUniformBuffers(uint32_t imageIndex)
     // copy model data
     for (size_t i = 0; i < meshList.size(); ++i)
     {
+        // Beginning of trasfer space + offset (ie total size that can be allocated) <-- store model data here
         UBOModel* thisModel = (UBOModel*)((uint64_t)modelTransferSpace + (i * modelUniformAlignment));
         *thisModel = meshList[i]->getModel();
     }
