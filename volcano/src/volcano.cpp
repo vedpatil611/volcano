@@ -107,7 +107,12 @@ void Volcano::init(Window* window)
     meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex, meshIndices));
     meshList.emplace_back(std::make_shared<Mesh>(Volcano::device.get(), meshVertex2, meshIndices));
    
+    glm::mat4 meshModel = meshList[0]->getModel().model;
+    meshModel = glm::rotate(meshModel, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    meshList[0]->setModel(meshModel);
+
     Volcano::createCommandBuffer();
+    Volcano::allocateDynamicBufferTransferSpace();
     Volcano::createUniformBuffer();
     Volcano::createDescriptorPool();
     Volcano::createDescriptorSets();
@@ -118,6 +123,9 @@ void Volcano::init(Window* window)
 void Volcano::destroy()
 {
     Volcano::device->waitIdle();
+
+    _aligned_free(modelTransferSpace);
+
     for(int i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
         Volcano::device->destroySemaphore(Volcano::renderFinished[i]);
@@ -128,10 +136,13 @@ void Volcano::destroy()
     //Volcano::device->freeDescriptorSets(Volcano::descriptorPool, Volcano::descriptorSets);
     Volcano::device->destroyDescriptorPool(Volcano::descriptorPool);
     Volcano::device->destroyDescriptorSetLayout(Volcano::descriptorSetLayout);
-    for(size_t i = 0; i < uniformBuffer.size(); ++i)
+    for(size_t i = 0; i < swapChainImages.size(); ++i)
     {
-        Volcano::device->destroyBuffer(uniformBuffer[i]);
-        Volcano::device->freeMemory(uniformBufferMemory[i]);
+        Volcano::device->destroyBuffer(vpUniformBuffer[i]);
+        Volcano::device->freeMemory(vpUniformBufferMemory[i]);
+        
+        Volcano::device->destroyBuffer(modelUniformBuffer[i]);
+        Volcano::device->freeMemory(modelUniformBufferMemory[i]);
     }
     Volcano::cleanupSwapChain();
     Volcano::device->destroyCommandPool(Volcano::graphicsCommandPool);
@@ -166,7 +177,7 @@ void Volcano::draw()
         throw std::runtime_error("Failed to aquire swapchain image");
     }
     
-    Volcano::updateUniformBuffer(index);
+    Volcano::updateUniformBuffers(index);
 
     // 2. Submit command buffer to graphics queue
     // Queue submit info
@@ -248,6 +259,9 @@ void Volcano::pickPhysicalDevice()
             break;
         }
     }
+
+    vk::PhysicalDeviceProperties deviceProperties = physicalDevice.getProperties();
+    minBufferOffset = deviceProperties.limits.minUniformBufferOffsetAlignment;
 
     if(!physicalDevice)
         throw std::runtime_error("Failed to find suitable GPU");
@@ -593,18 +607,31 @@ void Volcano::createRenderPass()
 
 void Volcano::createDescriptorSetLayout()
 {
-    // Uniform binding description
-    vk::DescriptorSetLayoutBinding uniformBinding = {};
-    uniformBinding.binding = 0;                                             // binding point in shaders
-    uniformBinding.descriptorType = vk::DescriptorType::eUniformBuffer;     // descriptor type
-    uniformBinding.descriptorCount = 1;                                     // just 1 struct of mvp
-    uniformBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;           // mvp struct bound in vertex shader
-    uniformBinding.pImmutableSamplers = nullptr;
+    // Model View Uniform binding description
+    vk::DescriptorSetLayoutBinding vpLayoutBinding = {};
+    vpLayoutBinding.binding = 0;                                            // binding point in shaders
+    vpLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;    // descriptor type
+    vpLayoutBinding.descriptorCount = 1;                                    // just 1 struct of mvp
+    vpLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;          // mvp struct bound in vertex shader
+    vpLayoutBinding.pImmutableSamplers = nullptr;
+
+    //Model binding info
+    vk::DescriptorSetLayoutBinding modelLayoutBinding = {};
+    modelLayoutBinding.binding = 1;                                         // binding 1 defined in vert shader
+    modelLayoutBinding.descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+    modelLayoutBinding.descriptorCount = 1;
+    modelLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
+    modelLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<vk::DescriptorSetLayoutBinding, 2> bindings = {
+        vpLayoutBinding,
+        modelLayoutBinding
+    };
 
     // create descriptor set layout with given binding
     vk::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-    layoutCreateInfo.bindingCount = 1;                                      // just 1 binding for now
-    layoutCreateInfo.pBindings = &uniformBinding;                           // pointer to array of bindings
+    layoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());     // just 1 binding for now
+    layoutCreateInfo.pBindings = bindings.data();                               // pointer to array of bindings
     
     // create descriptor set layout
     try
@@ -928,9 +955,15 @@ void Volcano::recordCommands()
                     // Bind index buffer
                     Volcano::commandBuffers[i].bindIndexBuffer(meshList[j]->getIndexBuffer(), 0, vk::IndexType::eUint32);
                 
+                    // Dynamic offset amount
+                    std::array<uint32_t, 1> dynamicOffsets = {
+                        static_cast<uint32_t>(modelUniformAlignment) * j
+                    };
+                    //uint32_t dynamicOffset = static_cast<uint32_t>(modelUniformAlignment) * j;
+
                     // bind descriptor sets
                     Volcano::commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, Volcano::pipelineLayout, 0,
-                        Volcano::descriptorSets[i], nullptr);
+                        Volcano::descriptorSets[i], dynamicOffsets);
 
                     // Execute pipline
                     Volcano::commandBuffers[i].drawIndexed(meshList[j]->getIndexCount(), 1, 0, 0, 0);
@@ -1123,31 +1156,49 @@ void Volcano::cleanupSwapChain()
 
 void Volcano::createUniformBuffer() 
 {
-    // Uniform buffer size
-    vk::DeviceSize bufferSize = sizeof(UBOViewProj);
+    // View Projection buffer size
+    vk::DeviceSize vpBufferSize = sizeof(UBOViewProj);
     
+    // Model Buffer Size
+    vk::DeviceSize modelBufferSize = modelUniformAlignment * MAX_OBJECTS;
+
     // one uniform buffer for each image
-    Volcano::uniformBuffer.resize(Volcano::swapChainImages.size());
-    Volcano::uniformBufferMemory.resize(Volcano::swapChainImages.size());
+    Volcano::vpUniformBuffer.resize(Volcano::swapChainImages.size());
+    Volcano::vpUniformBufferMemory.resize(Volcano::swapChainImages.size());
+    
+    Volcano::modelUniformBuffer.resize(Volcano::swapChainImages.size());
+    Volcano::modelUniformBufferMemory.resize(Volcano::swapChainImages.size());
     
     // Create uniform buffer
     for (size_t i = 0; i < Volcano::swapChainImages.size(); ++i)
     {
-        createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, uniformBuffer[i], uniformBufferMemory[i]);
+        createBuffer(vpBufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, vpUniformBuffer[i], vpUniformBufferMemory[i]); 
+        
+        createBuffer(modelBufferSize, vk::BufferUsageFlagBits::eUniformBuffer,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, modelUniformBuffer[i], modelUniformBufferMemory[i]);
     }
 }
 
 void Volcano::createDescriptorPool()
 {
-    vk::DescriptorPoolSize poolSize = {};
-    poolSize.type = vk::DescriptorType::eUniformBuffer;
-    poolSize.descriptorCount = static_cast<uint32_t>(uniformBuffer.size());
+    vk::DescriptorPoolSize vpPoolSize = {};
+    vpPoolSize.type = vk::DescriptorType::eUniformBuffer;
+    vpPoolSize.descriptorCount = static_cast<uint32_t>(vpUniformBuffer.size());
+    
+    vk::DescriptorPoolSize modelPoolSize = {};
+    modelPoolSize.type = vk::DescriptorType::eUniformBufferDynamic;
+    modelPoolSize.descriptorCount = static_cast<uint32_t>(modelUniformBuffer.size());
+
+    std::array<vk::DescriptorPoolSize, 2> poolSizes = {
+        vpPoolSize,
+        modelPoolSize
+    };
 
     vk::DescriptorPoolCreateInfo poolCreateInfo = {};
-    poolCreateInfo.maxSets = static_cast<uint32_t>(uniformBuffer.size());
-    poolCreateInfo.poolSizeCount = 1;
-    poolCreateInfo.pPoolSizes = &poolSize;
+    poolCreateInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+    poolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolCreateInfo.pPoolSizes = poolSizes.data();
 
     try 
     {
@@ -1161,12 +1212,12 @@ void Volcano::createDescriptorPool()
 
 void Volcano::createDescriptorSets()
 {
-    std::vector<vk::DescriptorSetLayout> setLayouts(Volcano::uniformBuffer.size(), Volcano::descriptorSetLayout);
+    std::vector<vk::DescriptorSetLayout> setLayouts(Volcano::swapChainImages.size(), Volcano::descriptorSetLayout);
 
     // alloc info
     vk::DescriptorSetAllocateInfo setAllocInfo = {};
     setAllocInfo.descriptorPool = Volcano::descriptorPool;
-    setAllocInfo.descriptorSetCount = static_cast<uint32_t>(Volcano::uniformBuffer.size());
+    setAllocInfo.descriptorSetCount = static_cast<uint32_t>(Volcano::swapChainImages.size());
     setAllocInfo.pSetLayouts = setLayouts.data();
 
     try
@@ -1179,36 +1230,78 @@ void Volcano::createDescriptorSets()
     }
 
     // update all descriptor set buffer binding
-    for(size_t i = 0; i < Volcano::uniformBuffer.size(); ++i)
+    for(size_t i = 0; i < Volcano::swapChainImages.size(); ++i)
     {
         // Buffer info and data offset info 
-        vk::DescriptorBufferInfo mvpBufferInfo = {};
-        mvpBufferInfo.buffer = Volcano::uniformBuffer[i];                   // Buffer to get data from
-        mvpBufferInfo.offset = 0;                                           // Start at
-        mvpBufferInfo.range = sizeof(UBOViewProj);
+        vk::DescriptorBufferInfo vpBufferInfo = {};
+        vpBufferInfo.buffer = Volcano::vpUniformBuffer[i];                   // Buffer to get data from
+        vpBufferInfo.offset = 0;                                           // Start at
+        vpBufferInfo.range = sizeof(UBOViewProj);
 
         // data about connection between binding and buffer
-        vk::WriteDescriptorSet mvpSetWrite = {};
-        mvpSetWrite.dstSet = Volcano::descriptorSets[i];                    // descriptor set to update
-        mvpSetWrite.dstBinding = 0;                                         // layout (binding = 0)
-        mvpSetWrite.dstArrayElement = 0;                                    // if uniform is array then index to update
-        mvpSetWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-        mvpSetWrite.descriptorCount = 1;                                    // Amount to update
-        mvpSetWrite.pBufferInfo = &mvpBufferInfo;
+        vk::WriteDescriptorSet vpSetWrite = {};
+        vpSetWrite.dstSet = Volcano::descriptorSets[i];                    // descriptor set to update
+        vpSetWrite.dstBinding = 0;                                         // layout (binding = 0)
+        vpSetWrite.dstArrayElement = 0;                                    // if uniform is array then index to update
+        vpSetWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+        vpSetWrite.descriptorCount = 1;                                    // Amount to update
+        vpSetWrite.pBufferInfo = &vpBufferInfo;
+
+        vk::DescriptorBufferInfo modelBufferInfo = {};
+        modelBufferInfo.buffer = modelUniformBuffer[i];
+        modelBufferInfo.offset = 0;
+        modelBufferInfo.range = modelUniformAlignment * MAX_OBJECTS;
+
+        vk::WriteDescriptorSet modelWriteSet = {};
+        modelWriteSet.dstSet = descriptorSets[i];
+        modelWriteSet.dstBinding = 1;
+        modelWriteSet.dstArrayElement = 0;
+        modelWriteSet.descriptorType = vk::DescriptorType::eUniformBufferDynamic;
+        modelWriteSet.descriptorCount = 1;
+        modelWriteSet.pBufferInfo = &modelBufferInfo;
+
+        std::array<vk::WriteDescriptorSet, 2> setWrites = {
+            vpSetWrite,
+            modelWriteSet
+        };
 
         // update descripter set with new buffer binding info
-        Volcano::device->updateDescriptorSets(mvpSetWrite, nullptr);
+        Volcano::device->updateDescriptorSets(setWrites, nullptr);
     }
 
     //for (auto& layout: setLayouts)
         //Volcano::device->destroyDescriptorSetLayout(layout);
 }
 
-void Volcano::updateUniformBuffer(uint32_t imageIndex)
+void Volcano::updateUniformBuffers(uint32_t imageIndex)
 {
-    void* data = Volcano::device->mapMemory(Volcano::uniformBufferMemory[imageIndex], 0, sizeof(UBOViewProj));
+    // copy vp data
+    void* data = Volcano::device->mapMemory(Volcano::vpUniformBufferMemory[imageIndex], 0, sizeof(UBOViewProj));
     memcpy(data, &mvp, sizeof(UBOViewProj));
-    Volcano::device->unmapMemory(Volcano::uniformBufferMemory[imageIndex]);
+    Volcano::device->unmapMemory(Volcano::vpUniformBufferMemory[imageIndex]);
+
+    // copy model data
+    for (size_t i = 0; i < meshList.size(); ++i)
+    {
+        UBOModel* thisModel = (UBOModel*)((uint64_t)modelTransferSpace + (i * modelUniformAlignment));
+        *thisModel = meshList[i]->getModel();
+    }
+
+    data = Volcano::device->mapMemory(Volcano::modelUniformBufferMemory[imageIndex], 0, modelUniformAlignment * meshList.size());
+    memcpy(data, modelTransferSpace, modelUniformAlignment * meshList.size());
+    Volcano::device->unmapMemory(Volcano::modelUniformBufferMemory[imageIndex]);
+}
+
+void Volcano::allocateDynamicBufferTransferSpace()
+{
+    // if minBufferOffset = 256 -> 256 - 1 = 255 -> all 7 bits are 1 and highest bit is 0 -> complemnet it
+    // Pro tip: 2's complement of a number of power of is itself but -ve
+    // if sizeof ubomdel is still greater than 0 this means data size is greater than 256 
+    //  (1^0*)1 00000000 is valid. Last all bits should be zero
+    modelUniformAlignment = (sizeof(UBOModel) + minBufferOffset - 1) & ~(minBufferOffset - 1);                      // Calclutaion alignemnt of model data
+
+    // Create space to hlod dynamic memory
+    modelTransferSpace = (UBOModel*) _aligned_malloc(modelUniformAlignment * MAX_OBJECTS, modelUniformAlignment);
 }
 
 #ifdef DEBUG

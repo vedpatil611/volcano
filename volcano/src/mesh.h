@@ -11,18 +11,6 @@ struct UBOModel
 
 class Mesh
 {
-private:
-    UBOModel uboModel;
-
-    int vertexCount;
-    vk::Buffer vertexBuffer;
-    vk::DeviceMemory vertexBufferMemory;
-
-    int indexCount;
-    vk::Buffer indexBuffer;
-    vk::DeviceMemory indexBufferMemory;
-
-    vk::Device& device;
 public:
     Mesh(vk::Device& device, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices);
     ~Mesh();
@@ -35,6 +23,18 @@ public:
     
     inline int getIndexCount() const { return indexCount; };
     inline vk::Buffer getIndexBuffer() const { return indexBuffer; };
+private:
+    UBOModel uboModel;
+
+    int vertexCount;
+    vk::Buffer vertexBuffer;
+    vk::DeviceMemory vertexBufferMemory;
+
+    int indexCount;
+    vk::Buffer indexBuffer;
+    vk::DeviceMemory indexBufferMemory;
+
+    vk::Device& device;
 private:
     void createVertexBuffer(std::vector<Vertex>& vertices);
     void createIndexBuffer(std::vector<uint32_t>& indices);
