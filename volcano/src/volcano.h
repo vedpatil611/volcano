@@ -72,18 +72,20 @@ class Volcano
         inline static std::vector<vk::Fence> drawFences;
         
         inline static vk::DescriptorSetLayout descriptorSetLayout;
+        inline static vk::PushConstantRange pushConstantRange;
+
         inline static vk::DescriptorPool descriptorPool;
         inline static std::vector<vk::DescriptorSet> descriptorSets;
         
         inline static std::vector<vk::Buffer> vpUniformBuffer;
         inline static std::vector<vk::DeviceMemory> vpUniformBufferMemory;
         
-        inline static std::vector<vk::Buffer> modelUniformBuffer;
-        inline static std::vector<vk::DeviceMemory> modelUniformBufferMemory;
+        // inline static std::vector<vk::Buffer> modelUniformBuffer;
+        // inline static std::vector<vk::DeviceMemory> modelUniformBufferMemory;
 
-        inline static vk::DeviceSize minBufferOffset;
-        inline static size_t modelUniformAlignment;
-        inline static UBOModel* modelTransferSpace;
+        //inline static vk::DeviceSize minBufferOffset;
+        //inline static size_t modelUniformAlignment;
+        //inline static UBOModel* modelTransferSpace;
 
         inline static Window* window;
 // Validation layer only exist for debug build
@@ -111,12 +113,13 @@ class Volcano
         static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
         static void createRenderPass();
         static void createDescriptorSetLayout();
+        static void createPushConstantRange();
         static void createGraphicsPipeline();
         static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
         static void createFramebuffers();
         static void createCommandPool();
         static void createCommandBuffer();
-        static void recordCommands();
+        static void recordCommands(uint32_t currentImage);
         static void createSynchronization();
         
         static uint32_t findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyFlags properties);

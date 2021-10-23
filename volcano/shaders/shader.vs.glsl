@@ -11,6 +11,12 @@ layout (binding = 0) uniform UBOViewProj
     mat4 view;
 } uboViewProj;
 
+layout(push_constant) uniform PushModel 
+{
+    mat4 model;
+} pushModel;
+
+// Old code for dyanamic descriptor set
 layout (binding = 1) uniform UBOModel 
 {
     mat4 model;
@@ -20,6 +26,6 @@ layout (location = 0) out vec4 v_color;
 
 void main()
 {
-    gl_Position = uboViewProj.proj * uboViewProj.view * uboModel.model * vec4(position, 1.0f);
+    gl_Position = uboViewProj.proj * uboViewProj.view * pushModel.model * vec4(position, 1.0f);
     v_color = color;
 }

@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.hpp>
 #include "vertex.h"
 
-struct UBOModel 
+struct Model 
 {
     glm::mat4 model;    
 };
@@ -16,7 +16,7 @@ public:
     ~Mesh();
 
     void setModel(const glm::mat4& model);
-    inline UBOModel getModel() const { return uboModel; }
+    inline Model getModel() const { return model; }
 
     inline int getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
@@ -24,7 +24,7 @@ public:
     inline int getIndexCount() const { return indexCount; };
     inline vk::Buffer getIndexBuffer() const { return indexBuffer; };
 private:
-    UBOModel uboModel;
+    Model model;
 
     int vertexCount;
     vk::Buffer vertexBuffer;
