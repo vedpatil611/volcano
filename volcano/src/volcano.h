@@ -53,9 +53,15 @@ class Volcano
         };
         
         inline static vk::SwapchainKHR swapChain;
+
         inline static std::vector<SwapChainImage> swapChainImages;
         inline static std::vector<vk::Framebuffer> swapChainFramebuffers;
         inline static std::vector<vk::CommandBuffer> commandBuffers;
+        
+        inline static vk::Image depthBufferImage;
+        inline static vk::DeviceMemory depthBufferMemory;
+        inline static vk::ImageView depthBufferImageView;
+
         inline static vk::Format swapChainImageFormat;
         inline static vk::Extent2D swapChainExtent;
 
@@ -115,8 +121,13 @@ class Volcano
         static void createDescriptorSetLayout();
         static void createPushConstantRange();
         static void createGraphicsPipeline();
-        static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
+        static void createDepthBufferImage();
         static void createFramebuffers();
+
+        static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
+        static vk::Image createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
+            vk::ImageUsageFlags useFlags, vk::MemoryPropertyFlags propFlags, vk::DeviceMemory& imageMemory);
+
         static void createCommandPool();
         static void createCommandBuffer();
         static void recordCommands(uint32_t currentImage);

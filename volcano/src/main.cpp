@@ -1,3 +1,5 @@
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "volcanoPCH.h"
 #include "volcano.h"
 #include "window.h"

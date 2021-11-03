@@ -829,6 +829,11 @@ void Volcano::createGraphicsPipeline()
     // Unique shader modules automatically destroys after pipeline creation
 }
 
+void Volcano::createDepthBufferImage()
+{
+
+}
+
 vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code)
 {
     try 
@@ -844,6 +849,55 @@ vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code
     {
         throw std::runtime_error("Failed to create shader module");
     }
+}
+
+vk::Image Volcano::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags useFlags, vk::MemoryPropertyFlags propFlags, vk::DeviceMemory& imageMemory)
+{
+    // Create image
+    vk::ImageCreateInfo imageCreateInfo = {};
+    imageCreateInfo.imageType = vk::ImageType::e2D;
+    imageCreateInfo.extent.width = width;
+    imageCreateInfo.extent.height = height;
+    imageCreateInfo.extent.depth = 1;
+    imageCreateInfo.mipLevels = 1;
+    imageCreateInfo.arrayLayers = 1;                    // No of levels in image array
+    imageCreateInfo.format = format;
+    imageCreateInfo.tiling = tiling;
+    imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
+    imageCreateInfo.usage = useFlags;
+    imageCreateInfo.samples = vk::SampleCountFlagBits::e1;
+    imageCreateInfo.sharingMode = vk::SharingMode::eExclusive;      // whetter image can be shared between queues
+    
+    vk::Image image;
+
+    try 
+    {
+        image = Volcano::device->createImage(imageCreateInfo);
+    }
+    catch (vk::SystemError& e)
+    {
+        throw std::runtime_error(e.what());
+    }
+
+    // Create Memory for image
+    vk::MemoryRequirements memRequirments = Volcano::device->getImageMemoryRequirements(image);
+
+    vk::MemoryAllocateInfo memoryAllocInfo = {};
+    memoryAllocInfo.allocationSize = memRequirments.size;
+    memoryAllocInfo.memoryTypeIndex = findMemoryTypeIndex(memRequirments.memoryTypeBits, propFlags);
+
+    try
+    {
+        imageMemory = Volcano::device->allocateMemory(memoryAllocInfo);
+    }
+    catch (const vk::SystemError& e)
+    {
+        throw std::runtime_error("Failed to allocate memory: " + std::string(e.what()));
+    }
+
+    Volcano::device->bindImageMemory(image, imageMemory, 0);
+
+    return image;
 }
 
 void Volcano::createFramebuffers()
