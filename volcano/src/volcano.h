@@ -127,6 +127,7 @@ class Volcano
         static vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
         static vk::Image createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling,
             vk::ImageUsageFlags useFlags, vk::MemoryPropertyFlags propFlags, vk::DeviceMemory& imageMemory);
+        static vk::Format chooseSupportedFormat(const std::vector<vk::Format>& formats, const vk::ImageTiling& tiling, const vk::FormatFeatureFlags& featureFlags);
 
         static void createCommandPool();
         static void createCommandBuffer();

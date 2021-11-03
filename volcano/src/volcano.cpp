@@ -124,6 +124,10 @@ void Volcano::destroy()
         Volcano::device->destroyFence(Volcano::drawFences[i]);
     }
     
+    Volcano::device->destroyImageView(depthBufferImageView);
+    Volcano::device->destroyImage(depthBufferImage);
+    Volcano::device->freeMemory(depthBufferMemory);
+
     //Volcano::device->freeDescriptorSets(Volcano::descriptorPool, Volcano::descriptorSets);
     Volcano::device->destroyDescriptorPool(Volcano::descriptorPool);
     Volcano::device->destroyDescriptorSetLayout(Volcano::descriptorSetLayout);
@@ -831,7 +835,16 @@ void Volcano::createGraphicsPipeline()
 
 void Volcano::createDepthBufferImage()
 {
+    vk::Format depthFormat = Volcano::chooseSupportedFormat(
+        { vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint },
+        vk::ImageTiling::eOptimal, 
+        vk::FormatFeatureFlagBits::eDepthStencilAttachment
+    );
 
+    Volcano::depthBufferImage = createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::MemoryPropertyFlagBits::eDeviceLocal, depthBufferMemory);
+    
+    depthBufferImageView = createImageView(depthBufferImage, depthFormat, vk::ImageAspectFlagBits::eDepth);
 }
 
 vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code)
@@ -898,6 +911,25 @@ vk::Image Volcano::createImage(uint32_t width, uint32_t height, vk::Format forma
     Volcano::device->bindImageMemory(image, imageMemory, 0);
 
     return image;
+}
+
+vk::Format Volcano::chooseSupportedFormat(const std::vector<vk::Format>& formats, const vk::ImageTiling& tiling, const vk::FormatFeatureFlags& featureFlags)
+{
+    for (const vk::Format& format: formats) 
+    {
+        vk::FormatProperties properties = Volcano::physicalDevice.getFormatProperties(format);
+
+        if (tiling == vk::ImageTiling::eLinear && (properties.linearTilingFeatures & featureFlags) == featureFlags)
+        {
+            return format;
+        }
+        else if (tiling == vk::ImageTiling::eOptimal && (properties.optimalTilingFeatures & featureFlags) == featureFlags)
+        {
+            return format;
+        }
+    }
+
+    throw std::runtime_error("Failed to find matching format");
 }
 
 void Volcano::createFramebuffers()
