@@ -821,7 +821,13 @@ void Volcano::createGraphicsPipeline()
         throw std::runtime_error("Failed to create pipleline layout");
     }
 
-    // Set depth stencil later
+    // Depth stencil testing
+    vk::PipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
+    depthStencilCreateInfo.depthTestEnable = VK_TRUE;                   // enable depth checking for fragment write
+    depthStencilCreateInfo.depthWriteEnable = VK_TRUE;                  // enable depth writing
+    depthStencilCreateInfo.depthCompareOp = vk::CompareOp::eLess;       // If new value is less then override value
+    depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;            // Depth bound test -> does depth exist between given min and max bounds
+    depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
     // Graphics pipeline creation
     vk::GraphicsPipelineCreateInfo pipelineInfo = {};
@@ -834,7 +840,7 @@ void Volcano::createGraphicsPipeline()
     pipelineInfo.pRasterizationState = &rasterizerInfo;
     pipelineInfo.pMultisampleState = &multisampleInfo;
     pipelineInfo.pColorBlendState = &colorBlendCreateInfo;
-    pipelineInfo.pDepthStencilState = nullptr;
+    pipelineInfo.pDepthStencilState = &depthStencilCreateInfo;
     pipelineInfo.layout = Volcano::pipelineLayout;
     pipelineInfo.renderPass = Volcano::renderPass;
     pipelineInfo.subpass = 0;
@@ -961,8 +967,9 @@ void Volcano::createFramebuffers()
     for(size_t i = 0; i < swapChainFramebuffers.size(); ++i)
     {
         // Swapchain image view
-        std::array<vk::ImageView, 1> attachments = {
-            Volcano::swapChainImages[i].imageView
+        std::array<vk::ImageView, 2> attachments = {
+            Volcano::swapChainImages[i].imageView,
+            Volcano::depthBufferImageView
         };
 
         // Framebuffer info
