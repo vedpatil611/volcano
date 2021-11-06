@@ -30,11 +30,12 @@ int main()
         glm::mat4 model1(1.0f);
         glm::mat4 model2(1.0f);
 
-        model1 = glm::translate(model1, glm::vec3(-2.0f, -5.0f, 0.0f));
+        model1 = glm::translate(model1, glm::vec3(0.0f, 0.0f, 0.0f));
         //model1 = glm::scale();
         model1 = glm::rotate(model1, glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f));
 
-        model2 = glm::translate(model2, glm::vec3(5.0f, 5.0f, 0.0f));
+        model2 = glm::translate(model2, glm::vec3(0.0f, 0.0f, -1.0f));
+        model2 = glm::scale(model2, glm::vec3(3.0f, 3.0f, 3.0f));
         model2 = glm::rotate(model2, glm::radians(-angle * 10), glm::vec3(0.0f, 0.0f, 1.0f));
         
         Volcano::updateModel(0, model1);
