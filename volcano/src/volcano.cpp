@@ -74,6 +74,7 @@ void Volcano::init(Window* window)
     Volcano::pickPhysicalDevice();
     Volcano::createLogicalDevice();
     Volcano::createSwapChain();
+    Volcano::createDepthBufferImage();
     Volcano::createRenderPass();
     Volcano::createDescriptorSetLayout();
     Volcano::createGraphicsPipeline();
@@ -1040,12 +1041,13 @@ void Volcano::recordCommands(uint32_t currentImage)
     renderPassBeginInfo.renderArea.offset = vk::Offset2D(0, 0);                 // Start point of render pass
     renderPassBeginInfo.renderArea.extent = Volcano::swapChainExtent;           // Size of region to run renderpass on
     
-    vk::ClearValue clearValues[] = {
-        vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f })
+    std::array<vk::ClearValue, 2> clearValues = {
+        vk::ClearColorValue(std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f }),
+        vk::ClearDepthStencilValue(1.0f)
     };
 
-    renderPassBeginInfo.pClearValues = clearValues;                             // List of clear values (list because might add depth later)
-    renderPassBeginInfo.clearValueCount = 1;
+    renderPassBeginInfo.pClearValues = clearValues.data();                             // List of clear values (list because might add depth later)
+    renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 
     //for(size_t i = 0; i < Volcano::commandBuffers.size(); ++i)
     //{
