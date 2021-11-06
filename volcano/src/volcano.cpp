@@ -537,30 +537,47 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
 
 void Volcano::createRenderPass()
 {
+    // ATTACHMENTS
     //Colour attachment of renderpass
-    vk::AttachmentDescription colourAttachments = {};
-    colourAttachments.format = Volcano::swapChainImageFormat;               // Use stored format
-    colourAttachments.samples = vk::SampleCountFlagBits::e1;                // Single sample (no multisampling)
-    colourAttachments.loadOp = vk::AttachmentLoadOp::eClear;                // Operation on first load -> clear (similar to glClear())
-    colourAttachments.storeOp = vk::AttachmentStoreOp::eStore;              // Store data to draw
-    colourAttachments.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;      // Don't care about stencil
-    colourAttachments.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    vk::AttachmentDescription colourAttachment = {};
+    colourAttachment.format = Volcano::swapChainImageFormat;               // Use stored format
+    colourAttachment.samples = vk::SampleCountFlagBits::e1;                // Single sample (no multisampling)
+    colourAttachment.loadOp = vk::AttachmentLoadOp::eClear;                // Operation on first load -> clear (similar to glClear())
+    colourAttachment.storeOp = vk::AttachmentStoreOp::eStore;              // Store data to draw
+    colourAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;      // Don't care about stencil
+    colourAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 
     // Framebuffer data can be stored as image. Image can have different layout
-    colourAttachments.initialLayout = vk::ImageLayout::eUndefined;          // Undefine initial layout before render pass start
+    colourAttachment.initialLayout = vk::ImageLayout::eUndefined;          // Undefine initial layout before render pass start
     // Initial layout to subpass and then subpass to final
-    colourAttachments.finalLayout = vk::ImageLayout::ePresentSrcKHR;        // layout after render pass
+    colourAttachment.finalLayout = vk::ImageLayout::ePresentSrcKHR;        // layout after render pass
+
+    //Depth attachments of render pass
+    vk::AttachmentDescription depthAttachment = {};
+    depthAttachment.format = Volcano::depthFormat;
+    depthAttachment.samples = vk::SampleCountFlagBits::e1;
+    depthAttachment.loadOp = vk::AttachmentLoadOp::eClear;
+    depthAttachment.storeOp = vk::AttachmentStoreOp::eDontCare;            // Value never used. So we don't care
+    depthAttachment.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+    depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+    depthAttachment.initialLayout = vk::ImageLayout::eUndefined;
+    depthAttachment.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
     // Attachment reference
     vk::AttachmentReference colourAttachmentRef = {};
     colourAttachmentRef.attachment = 0;
     colourAttachmentRef.layout = vk::ImageLayout::eColorAttachmentOptimal;  // Optimal for colour output
 
+    vk::AttachmentReference depthAttachmentRef = {};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
     // info about subpass that renderpass use
     vk::SubpassDescription subpass = {};
     subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;           // Pipeline type
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colourAttachmentRef;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;                  // Count not required as there can be only one depth attachment
 
     // When layout transition occur using subpass dependencies
     std::array<vk::SubpassDependency, 2> subpassDependencies;
@@ -584,10 +601,15 @@ void Volcano::createRenderPass()
     subpassDependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;                                                 // Transtion before 
     subpassDependencies[1].dstAccessMask = vk::AccessFlagBits::eMemoryRead;                                                         // Before read and write color
 
+    std::array<vk::AttachmentDescription, 2> renderpassAttachments = {
+        colourAttachment,
+        depthAttachment
+    };
+
     // renderpass create info
     vk::RenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colourAttachments;
+    renderPassInfo.attachmentCount = static_cast<uint32_t>(renderpassAttachments.size());
+    renderPassInfo.pAttachments = renderpassAttachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
     renderPassInfo.dependencyCount = static_cast<uint32_t>(subpassDependencies.size());
@@ -835,7 +857,7 @@ void Volcano::createGraphicsPipeline()
 
 void Volcano::createDepthBufferImage()
 {
-    vk::Format depthFormat = Volcano::chooseSupportedFormat(
+    Volcano::depthFormat = Volcano::chooseSupportedFormat(
         { vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint },
         vk::ImageTiling::eOptimal, 
         vk::FormatFeatureFlagBits::eDepthStencilAttachment

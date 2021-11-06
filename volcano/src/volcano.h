@@ -65,6 +65,8 @@ class Volcano
         inline static vk::Format swapChainImageFormat;
         inline static vk::Extent2D swapChainExtent;
 
+        inline static vk::Format depthFormat;
+
         inline static vk::Pipeline graphicsPipeline;
         inline static vk::PipelineLayout pipelineLayout;
         inline static vk::RenderPass renderPass;
