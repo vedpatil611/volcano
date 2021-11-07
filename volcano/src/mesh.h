@@ -21,7 +21,7 @@ public:
     inline int getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
     
-    inline int getIndexCount() const { return indexCount; };
+    inline size_t getIndexCount() const { return indexCount; };
     inline vk::Buffer getIndexBuffer() const { return indexBuffer; };
 private:
     Model model;
@@ -30,7 +30,7 @@ private:
     vk::Buffer vertexBuffer;
     vk::DeviceMemory vertexBufferMemory;
 
-    int indexCount;
+    size_t indexCount;
     vk::Buffer indexBuffer;
     vk::DeviceMemory indexBufferMemory;
 

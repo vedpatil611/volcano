@@ -20,7 +20,7 @@ int main()
     {
         window.pollEvents();
 
-        float now = glfwGetTime();
+        float now = static_cast<float>(glfwGetTime());
         deltaTime = now - lastTime;
         lastTime = now;
 

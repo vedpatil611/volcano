@@ -1063,7 +1063,7 @@ void Volcano::recordCommands(uint32_t currentImage)
         {
             Volcano::commandBuffers[currentImage].begin(bufferBeginInfo);                  // Begin recording
         }
-        catch(vk::SystemError& e)
+        catch(const vk::SystemError& e)
         {
             throw std::runtime_error("Failed to begin recording command buffer");
         }
@@ -1098,7 +1098,7 @@ void Volcano::recordCommands(uint32_t currentImage)
                         Volcano::descriptorSets[currentImage], nullptr);
 
                     // Execute pipline
-                    Volcano::commandBuffers[currentImage].drawIndexed(meshList[j]->getIndexCount(), 1, 0, 0, 0);
+                    Volcano::commandBuffers[currentImage].drawIndexed(static_cast<uint32_t>(meshList[j]->getIndexCount()), 1, 0, 0, 0);
                 }
             }
             Volcano::commandBuffers[currentImage].endRenderPass();
@@ -1547,7 +1547,7 @@ int Volcano::createTexture(const char* filename)
     Volcano::device->freeMemory(imageStagingMemory);
 
     // Return index of texture
-    return textureImages.size() - 1;
+    return static_cast<int>(textureImages.size() - 1);
 }
 
 #ifdef DEBUG
