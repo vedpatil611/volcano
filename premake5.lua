@@ -20,10 +20,15 @@ project	"volcano"
 	pchheader "volcanoPCH.h"
 	pchsource "volcano/src/volcanoPCH.cpp"
 
+	--defines {
+		--"STB_IMAGE_IMPLEMENTATION"
+	--}
+
 	includedirs { 
 		"Dependencies/glfw/include",
 		"Dependencies/vulkan/Include",
 		"Dependencies/glm",
+		"volcano/src/vendors"
 	}
 
 	links {

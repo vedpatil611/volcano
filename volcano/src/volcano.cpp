@@ -1540,7 +1540,7 @@ int Volcano::createTexture(const char* filename)
     
     // save texture data and memory
     Volcano::textureImages.emplace_back(texImage);
-    Volcano::textureImageMemory.emplace_back(textureImageMemory);
+    Volcano::textureImageMemory.emplace_back(texImageMemory);
 
     // destory staging image and buffer
     Volcano::device->destroyBuffer(imageStagingBuffer);

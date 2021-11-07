@@ -25,6 +25,10 @@ class Volcano
         static void updateModel(int modelId, const glm::mat4& newModel);
         
         static bool& getFramebufferResized() { return Volcano::framebufferResized; }
+
+        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
+            vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
     private:
         inline static bool framebufferResized = false;
         // Current frame to be drawn
@@ -147,9 +151,7 @@ class Volcano
         static void updateUniformBuffers(uint32_t imageIndex);
 
         static void allocateDynamicBufferTransferSpace();
-        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
-            vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
-        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        
         static void copyImageBuffer(vk::Buffer& src, vk::Image& image, uint32_t width, uint32_t height);
         static vk::CommandBuffer beginCopyBuffer(vk::CommandPool& commandPool);
         static void endCopyBuffer(vk::CommandPool& commandPool, vk::Queue& queue, vk::CommandBuffer& commandBuffer);
