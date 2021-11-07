@@ -1198,23 +1198,8 @@ uint32_t Volcano::findMemoryTypeIndex(uint32_t allowedTypes, vk::MemoryPropertyF
 
 void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize)
 {
-    // Command Buffer to hold transfer commands
-    vk::CommandBuffer transferCommandBuffer;
+    vk::CommandBuffer transferCommandBuffer = Volcano::beginCopyBuffer(Volcano::graphicsCommandPool);
 
-    // command buffer details
-    vk::CommandBufferAllocateInfo allocInfo = {};
-    allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandPool = Volcano::graphicsCommandPool;       // graphics command pool is same as transfer command pool
-    allocInfo.commandBufferCount = 1;
-
-    // Allocate command buffer from pool
-    transferCommandBuffer = Volcano::device->allocateCommandBuffers(allocInfo)[0];
-
-    // Info to begin command buffer
-    vk::CommandBufferBeginInfo beginInfo = {};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-    
-    transferCommandBuffer.begin(beginInfo);
     {
         // Region of data to copy from into
         vk::BufferCopy bufferCopyRegion = {};
@@ -1224,17 +1209,68 @@ void Volcano::copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize buffer
 
         transferCommandBuffer.copyBuffer(src, dst, bufferCopyRegion);
     }
+ 
+    Volcano::endCopyBuffer(Volcano::graphicsCommandPool, Volcano::graphicsQueue, transferCommandBuffer);
+}
+
+void Volcano::copyImageBuffer(vk::Buffer& src, vk::Image& image, uint32_t width, uint32_t height)
+{
+    vk::CommandBuffer transferCommandBuffer = Volcano::beginCopyBuffer(Volcano::graphicsCommandPool);
+
+    {
+        vk::BufferImageCopy imageRegion = {};
+        imageRegion.bufferOffset = 0;
+        imageRegion.bufferRowLength = 0;                // row lenght for data spacing
+        imageRegion.bufferImageHeight = 0;              // row height for image data spacing
+        imageRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+        imageRegion.imageSubresource.mipLevel = 1;
+        imageRegion.imageSubresource.baseArrayLayer = 0;
+        imageRegion.imageSubresource.layerCount = 1;
+        imageRegion.imageOffset = vk::Offset3D(0, 0, 0);
+        imageRegion.imageExtent = vk::Extent3D(width, height, 1);
+
+        transferCommandBuffer.copyBufferToImage(src, image, vk::ImageLayout::eTransferDstOptimal, imageRegion);
+    }
+
+    Volcano::endCopyBuffer(Volcano::graphicsCommandPool, Volcano::graphicsQueue, transferCommandBuffer);
+}
+
+vk::CommandBuffer Volcano::beginCopyBuffer(vk::CommandPool& commandPool)
+{
+    // Command Buffer to hold transfer commands
+    vk::CommandBuffer transferCommandBuffer;
+
+    // command buffer details
+    vk::CommandBufferAllocateInfo allocInfo = {};
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandPool = commandPool;       // graphics command pool is same as transfer command pool
+    allocInfo.commandBufferCount = 1;
+
+    // Allocate command buffer from pool
+    transferCommandBuffer = Volcano::device->allocateCommandBuffers(allocInfo)[0];
+
+    // Info to begin command buffer
+    vk::CommandBufferBeginInfo beginInfo = {};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+    transferCommandBuffer.begin(beginInfo);
+
+    return transferCommandBuffer;
+}
+
+void Volcano::endCopyBuffer(vk::CommandPool& commandPool, vk::Queue& queue, vk::CommandBuffer& transferCommandBuffer)
+{
     transferCommandBuffer.end();
 
     // Queue submit info
     vk::SubmitInfo submitInfo = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &transferCommandBuffer;
-    
+
     // Submit transfer command to transfer queue and wait till it finish
     // Graphics queue is same as transfer queue
-    Volcano::graphicsQueue.submit(submitInfo);
-    Volcano::graphicsQueue.waitIdle();
+    queue.submit(submitInfo);
+    queue.waitIdle();
 
     // Free command buffer back to pool
     Volcano::device->freeCommandBuffers(Volcano::graphicsCommandPool, transferCommandBuffer);
@@ -1441,6 +1477,71 @@ void Volcano::allocateDynamicBufferTransferSpace()
     // Create space to hlod dynamic memory
     modelTransferSpace = (Model*) _aligned_malloc(modelUniformAlignment * MAX_OBJECTS, modelUniformAlignment);
     */
+}
+
+stbi_uc* Volcano::loadTextureFile(const char* filename, int& width, int& height, vk::DeviceSize& imageSize)
+{
+    // No of channels image uses
+    int channels;
+
+    std::string fileLoc = "Texture/" + std::string(std::move(filename));
+
+    stbi_uc* image = stbi_load(fileLoc.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+    if (!image)
+        throw std::runtime_error("Failed to load texture: " + std::string(std::move(filename)));
+
+    imageSize = width * height * 4;
+
+    return image;
+}
+
+int Volcano::createTexture(const char* filename)
+{
+    // loading image data
+    int width, height;
+    vk::DeviceSize imageSize;
+    stbi_uc* imageData = loadTextureFile(filename, width, height, imageSize);
+
+    // Create staging buffer to hold loaded data to copy to device
+    vk::Buffer imageStagingBuffer;
+    vk::DeviceMemory imageStagingMemory;
+
+    Volcano::createBuffer(imageSize, vk::BufferUsageFlagBits::eTransferSrc, 
+        vk::MemoryPropertyFlagBits::eHostCoherent | vk::MemoryPropertyFlagBits::eHostVisible,
+        imageStagingBuffer, imageStagingMemory
+    );
+
+    // copying data to staging buffer
+    void* data = Volcano::device->mapMemory(imageStagingMemory, 0, imageSize);
+    memcpy(data, imageData, static_cast<uint32_t>(imageSize));
+    Volcano::device->unmapMemory(imageStagingMemory);
+
+    // Free image data
+    stbi_image_free(imageData);
+
+    // Create image to hold texture
+    vk::Image texImage;
+    vk::DeviceMemory texImageMemory;
+
+    texImage = Volcano::createImage(width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal, texImageMemory
+    );
+
+    // copy image data
+    Volcano::copyImageBuffer(imageStagingBuffer, texImage, width, height);
+    
+    // save texture data and memory
+    Volcano::textureImages.emplace_back(texImage);
+    Volcano::textureImageMemory.emplace_back(textureImageMemory);
+
+    // destory staging image and buffer
+    Volcano::device->destroyBuffer(imageStagingBuffer);
+    Volcano::device->freeMemory(imageStagingMemory);
+
+    // Return index of texture
+    return textureImages.size() - 1;
 }
 
 #ifdef DEBUG

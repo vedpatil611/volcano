@@ -23,9 +23,7 @@ class Volcano
         static void destroy();
         static void draw();
         static void updateModel(int modelId, const glm::mat4& newModel);
-        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
-            vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
-        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        
         static bool& getFramebufferResized() { return Volcano::framebufferResized; }
     private:
         inline static bool framebufferResized = false;
@@ -88,6 +86,9 @@ class Volcano
         
         inline static std::vector<vk::Buffer> vpUniformBuffer;
         inline static std::vector<vk::DeviceMemory> vpUniformBufferMemory;
+
+        inline static std::vector<vk::Image> textureImages;
+        inline static std::vector<vk::DeviceMemory> textureImageMemory;
         
         // inline static std::vector<vk::Buffer> modelUniformBuffer;
         // inline static std::vector<vk::DeviceMemory> modelUniformBufferMemory;
@@ -146,6 +147,15 @@ class Volcano
         static void updateUniformBuffers(uint32_t imageIndex);
 
         static void allocateDynamicBufferTransferSpace();
+        static void createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags bufferUsageFlags, vk::MemoryPropertyFlags bufferProperties,
+            vk::Buffer& buffer, vk::DeviceMemory& bufferMemory);
+        static void copyBuffer(vk::Buffer& src, vk::Buffer& dst, vk::DeviceSize bufferSize);
+        static void copyImageBuffer(vk::Buffer& src, vk::Image& image, uint32_t width, uint32_t height);
+        static vk::CommandBuffer beginCopyBuffer(vk::CommandPool& commandPool);
+        static void endCopyBuffer(vk::CommandPool& commandPool, vk::Queue& queue, vk::CommandBuffer& commandBuffer);
+
+        static stbi_uc* loadTextureFile(const char* filename, int& width, int& height, vk::DeviceSize& imageSize);
+        static int createTexture(const char* filename);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
