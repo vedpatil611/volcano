@@ -50,6 +50,7 @@ void Volcano::init(Window* window)
         } 
         catch(vk::SystemError& e)
         {
+            UNUSED(e);
             throw std::runtime_error("Failed to create instance");
         }
     }
@@ -158,7 +159,7 @@ void Volcano::destroy()
 void Volcano::draw()
 {
     // Wait for fence to signal
-    Volcano::device->waitForFences(Volcano::drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+    vk::Result result = Volcano::device->waitForFences(Volcano::drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
     // Manually reset closed fences
     Volcano::device->resetFences(Volcano::drawFences[currentFrame]);
     
@@ -176,6 +177,7 @@ void Volcano::draw()
     }
     catch(vk::SystemError& err)
     {
+        UNUSED(err);
         throw std::runtime_error("Failed to aquire swapchain image");
     }
 
@@ -203,7 +205,8 @@ void Volcano::draw()
     }
     catch(vk::SystemError& e)
     {
-         throw std::runtime_error("Failed to submit command buffer to queue");
+        UNUSED(e);
+        throw std::runtime_error("Failed to submit command buffer to queue");
     }
     
     // Images is drawn to buffer till this stage
@@ -223,6 +226,7 @@ void Volcano::draw()
     }
     catch(vk::OutOfDateKHRError& err)
     {
+        UNUSED(err);
         presentResult = vk::Result::eErrorOutOfDateKHR;
     }
     catch(vk::SystemError& err)
@@ -368,6 +372,7 @@ void Volcano::createLogicalDevice()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create logical device");
     }
 
@@ -492,6 +497,7 @@ void Volcano::createSwapChain()
     }
     catch (vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create swapchain");
     }
     
@@ -538,6 +544,7 @@ vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk:
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create image view");
     }
 }
@@ -628,6 +635,7 @@ void Volcano::createRenderPass()
     }
     catch (vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create render pass");
     }
 }
@@ -669,6 +677,7 @@ void Volcano::createDescriptorSetLayout()
     }
     catch(vk::SystemError& err)
     {
+        UNUSED(err);
         throw std::runtime_error("Failed to create descriptor set layout");
     }
 }
@@ -825,6 +834,7 @@ void Volcano::createGraphicsPipeline()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create pipleline layout");
     }
 
@@ -895,6 +905,7 @@ vk::UniqueShaderModule Volcano::createShaderModule(const std::vector<char>& code
     }
     catch(vk::SystemError& err)
     {
+        UNUSED(err);
         throw std::runtime_error("Failed to create shader module");
     }
 }
@@ -994,6 +1005,7 @@ void Volcano::createFramebuffers()
         }
         catch(vk::SystemError& e)
         {
+            UNUSED(e);
             throw std::runtime_error("Failed to create framebuffer");
         }
     }
@@ -1014,6 +1026,7 @@ void Volcano::createCommandPool()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create a command pool");
     }
 }
@@ -1065,6 +1078,7 @@ void Volcano::recordCommands(uint32_t currentImage)
         }
         catch(const vk::SystemError& e)
         {
+            UNUSED(e);
             throw std::runtime_error("Failed to begin recording command buffer");
         }
 
@@ -1110,6 +1124,7 @@ void Volcano::recordCommands(uint32_t currentImage)
         }
         catch(vk::SystemError& e)
         {
+            UNUSED(e);
             throw std::runtime_error("Failed to end recording command buffer");
         }
     //}
@@ -1139,6 +1154,7 @@ void Volcano::createSynchronization()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create semaphore/fences");
     }
 }
@@ -1157,6 +1173,7 @@ void Volcano::createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags buffe
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create vertex buffer");
     }
 
@@ -1177,6 +1194,7 @@ void Volcano::createBuffer(vk::DeviceSize bufferSize, vk::BufferUsageFlags buffe
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to allocate memory");
     }
 
@@ -1376,6 +1394,7 @@ void Volcano::createDescriptorPool()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to create descriptor pool");
     }
 }
@@ -1396,6 +1415,7 @@ void Volcano::createDescriptorSets()
     }
     catch(vk::SystemError& e)
     {
+        UNUSED(e);
         throw std::runtime_error("Failed to allocate descriptor sets");
     }
 
@@ -1497,7 +1517,7 @@ stbi_uc* Volcano::loadTextureFile(const char* filename, int& width, int& height,
     if (!image)
         throw std::runtime_error("Failed to load texture: " + std::string(std::move(filename)));
 
-    imageSize = width * height * 4;
+    imageSize = static_cast<uint64_t>(width) * height * 4;
 
     return image;
 }

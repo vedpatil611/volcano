@@ -18,7 +18,7 @@ public:
     void setModel(const glm::mat4& model);
     inline Model getModel() const { return model; }
 
-    inline int getVertexCount() const { return vertexCount; };
+    inline size_t getVertexCount() const { return vertexCount; };
     inline vk::Buffer getVertexBuffer() const { return vertexBuffer; };
     
     inline size_t getIndexCount() const { return indexCount; };
@@ -26,7 +26,7 @@ public:
 private:
     Model model;
 
-    int vertexCount;
+    size_t vertexCount;
     vk::Buffer vertexBuffer;
     vk::DeviceMemory vertexBufferMemory;
 
