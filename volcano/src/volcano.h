@@ -4,6 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <memory>
+#include <stb_image/stb_image.h>
 #include "mesh.h"
 #include "SwapChainImage.h"
 
