@@ -125,6 +125,12 @@ void Volcano::destroy()
         Volcano::device->destroyFence(Volcano::drawFences[i]);
     }
     
+    for (size_t i = 0; i < Volcano::textureImages.size(); ++i)
+    {
+        Volcano::device->destroyImage(Volcano::textureImages[i]);
+        Volcano::device->free(Volcano::textureImageMemory[i]);
+    }
+
     Volcano::device->destroyImageView(depthBufferImageView);
     Volcano::device->destroyImage(depthBufferImage);
     Volcano::device->freeMemory(depthBufferMemory);
