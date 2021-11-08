@@ -158,6 +158,8 @@ class Volcano
 
         static stbi_uc* loadTextureFile(const char* filename, int& width, int& height, vk::DeviceSize& imageSize);
         static int createTexture(const char* filename);
+
+        static void transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 #ifdef DEBUG
         static bool checkValidationLayerSupport();
         static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,

@@ -82,6 +82,8 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
  
+    int tex = Volcano::createTexture("brick.png");
+
     mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
     mvp.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     mvp.proj[1][1] *= -1;
@@ -1247,7 +1249,7 @@ void Volcano::copyImageBuffer(vk::Buffer& src, vk::Image& image, uint32_t width,
         imageRegion.bufferRowLength = 0;                // row lenght for data spacing
         imageRegion.bufferImageHeight = 0;              // row height for image data spacing
         imageRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-        imageRegion.imageSubresource.mipLevel = 1;
+        imageRegion.imageSubresource.mipLevel = 0;
         imageRegion.imageSubresource.baseArrayLayer = 0;
         imageRegion.imageSubresource.layerCount = 1;
         imageRegion.imageOffset = vk::Offset3D(0, 0, 0);
@@ -1297,7 +1299,7 @@ void Volcano::endCopyBuffer(vk::CommandPool& commandPool, vk::Queue& queue, vk::
     queue.waitIdle();
 
     // Free command buffer back to pool
-    Volcano::device->freeCommandBuffers(Volcano::graphicsCommandPool, transferCommandBuffer);
+    Volcano::device->freeCommandBuffers(commandPool, transferCommandBuffer);
 }
 
 void Volcano::recreateSwapChain() 
@@ -1510,7 +1512,7 @@ stbi_uc* Volcano::loadTextureFile(const char* filename, int& width, int& height,
     // No of channels image uses
     int channels;
 
-    std::string fileLoc = "Texture/" + std::string(std::move(filename));
+    std::string fileLoc = "Textures/" + std::string(std::move(filename));
 
     stbi_uc* image = stbi_load(fileLoc.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
@@ -1555,6 +1557,11 @@ int Volcano::createTexture(const char* filename)
         vk::MemoryPropertyFlagBits::eDeviceLocal, texImageMemory
     );
 
+    // transition image state before copy
+    Volcano::transitionImageLayout(Volcano::graphicsQueue, Volcano::graphicsCommandPool,
+        texImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal
+    );
+
     // copy image data
     Volcano::copyImageBuffer(imageStagingBuffer, texImage, width, height);
     
@@ -1568,6 +1575,53 @@ int Volcano::createTexture(const char* filename)
 
     // Return index of texture
     return static_cast<int>(textureImages.size() - 1);
+}
+
+void Volcano::transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
+{
+    vk::CommandBuffer commandBuffer = Volcano::beginCopyBuffer(commandPool);
+
+    vk::ImageMemoryBarrier memoryBarrier = {};
+    memoryBarrier.oldLayout = oldLayout;
+    memoryBarrier.newLayout = newLayout;
+    memoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    memoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    memoryBarrier.image = image;
+    memoryBarrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+    memoryBarrier.subresourceRange.baseMipLevel = 0;
+    memoryBarrier.subresourceRange.levelCount = 1;
+    memoryBarrier.subresourceRange.baseArrayLayer = 0;
+    memoryBarrier.subresourceRange.layerCount = 1;
+
+    vk::PipelineStageFlags srcFlag;
+    vk::PipelineStageFlags dstFlag;
+
+    if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal)
+    {
+        memoryBarrier.srcAccessMask = (vk::AccessFlags)(0);
+        memoryBarrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+        srcFlag = vk::PipelineStageFlagBits::eTopOfPipe;
+        dstFlag = vk::PipelineStageFlagBits::eTransfer;
+    }
+    
+    commandBuffer.pipelineBarrier(
+        srcFlag, dstFlag,                                           // match src and dst access mask
+        (vk::DependencyFlags)0,                                     // dependency flag
+        nullptr, nullptr,
+        memoryBarrier
+    );
+    //{
+    //    // Region of data to copy from into
+    //    vk::BufferCopy bufferCopyRegion = {};
+    //    bufferCopyRegion.srcOffset = 0;
+    //    bufferCopyRegion.dstOffset = 0;
+    //    bufferCopyRegion.size = bufferSize;
+
+    //    commandBuffer.copyBuffer(src, dst, bufferCopyRegion);
+    //}
+
+    Volcano::endCopyBuffer(commandPool, queue, commandBuffer);
 }
 
 #ifdef DEBUG
