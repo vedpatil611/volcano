@@ -1565,6 +1565,10 @@ int Volcano::createTexture(const char* filename)
     // copy image data
     Volcano::copyImageBuffer(imageStagingBuffer, texImage, width, height);
     
+    // transtion image to shader readable stage
+    Volcano::transitionImageLayout(Volcano::graphicsQueue, Volcano::graphicsCommandPool, texImage,
+        vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+
     // save texture data and memory
     Volcano::textureImages.emplace_back(texImage);
     Volcano::textureImageMemory.emplace_back(texImageMemory);
@@ -1603,6 +1607,13 @@ void Volcano::transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool
 
         srcFlag = vk::PipelineStageFlagBits::eTopOfPipe;
         dstFlag = vk::PipelineStageFlagBits::eTransfer;
+    }
+    else if (oldLayout == vk::ImageLayout::eTransferDstOptimal && newLayout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+        memoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+        memoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+        
+        srcFlag = vk::PipelineStageFlagBits::eTransfer;
+        dstFlag = vk::PipelineStageFlagBits::eFragmentShader;
     }
     
     commandBuffer.pipelineBarrier(
