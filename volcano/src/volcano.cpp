@@ -82,7 +82,7 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
  
-    int tex = Volcano::createTexture("brick.png");
+    int tex = Volcano::createTextureImage("brick.png");
 
     mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
     mvp.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -130,6 +130,7 @@ void Volcano::destroy()
     
     for (size_t i = 0; i < Volcano::textureImages.size(); ++i)
     {
+        Volcano::device->destroyImageView(Volcano::textureImageView[i]);
         Volcano::device->destroyImage(Volcano::textureImages[i]);
         Volcano::device->free(Volcano::textureImageMemory[i]);
     }
@@ -522,7 +523,7 @@ void Volcano::createSwapChain()
     }
 }
 
-vk::ImageView Volcano::createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag)
+vk::ImageView Volcano::createImageView(const vk::Image& image, const vk::Format& format, const vk::ImageAspectFlags aspectFlag)
 {
     vk::ImageViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.image = image;                                   // Image to create view for
@@ -1524,7 +1525,7 @@ stbi_uc* Volcano::loadTextureFile(const char* filename, int& width, int& height,
     return image;
 }
 
-int Volcano::createTexture(const char* filename)
+int Volcano::createTextureImage(const char* filename)
 {
     // loading image data
     int width, height;
@@ -1579,6 +1580,17 @@ int Volcano::createTexture(const char* filename)
 
     // Return index of texture
     return static_cast<int>(textureImages.size() - 1);
+}
+
+int Volcano::createTexture(const char* filename)
+{
+    int textureImageLoc = Volcano::createTextureImage(filename);
+
+    vk::ImageView imageView = Volcano::createImageView(Volcano::textureImages[textureImageLoc], vk::Format::eR8G8B8A8Unorm, vk::ImageAspectFlagBits::eColor);
+    textureImageView.push_back(imageView);
+
+    // Todo: Create descriptor set later
+    return 0;
 }
 
 void Volcano::transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)

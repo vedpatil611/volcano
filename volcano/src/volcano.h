@@ -93,6 +93,7 @@ class Volcano
 
         inline static std::vector<vk::Image> textureImages;
         inline static std::vector<vk::DeviceMemory> textureImageMemory;
+        inline static std::vector<vk::ImageView> textureImageView;
         
         // inline static std::vector<vk::Buffer> modelUniformBuffer;
         // inline static std::vector<vk::DeviceMemory> modelUniformBufferMemory;
@@ -124,7 +125,7 @@ class Volcano
         static vk::PresentModeKHR chooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentMode);
         static vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
         static void createSwapChain();
-        static vk::ImageView createImageView(vk::Image& image, vk::Format& format, vk::ImageAspectFlags aspectFlag);
+        static vk::ImageView createImageView(const vk::Image& image, const vk::Format& format, const vk::ImageAspectFlags aspectFlag);
         static void createRenderPass();
         static void createDescriptorSetLayout();
         static void createPushConstantRange();
@@ -157,6 +158,7 @@ class Volcano
         static void endCopyBuffer(vk::CommandPool& commandPool, vk::Queue& queue, vk::CommandBuffer& commandBuffer);
 
         static stbi_uc* loadTextureFile(const char* filename, int& width, int& height, vk::DeviceSize& imageSize);
+        static int createTextureImage(const char* filename);
         static int createTexture(const char* filename);
 
         static void transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
