@@ -82,6 +82,7 @@ class Volcano
         // Fences for cpu-gpu sync
         inline static std::vector<vk::Fence> drawFences;
         
+        // Uniform
         inline static vk::DescriptorSetLayout descriptorSetLayout;
         inline static vk::PushConstantRange pushConstantRange;
 
@@ -91,10 +92,12 @@ class Volcano
         inline static std::vector<vk::Buffer> vpUniformBuffer;
         inline static std::vector<vk::DeviceMemory> vpUniformBufferMemory;
 
+        // Textures
+        inline static vk::Sampler textureSampler;
         inline static std::vector<vk::Image> textureImages;
         inline static std::vector<vk::DeviceMemory> textureImageMemory;
         inline static std::vector<vk::ImageView> textureImageView;
-        
+
         // inline static std::vector<vk::Buffer> modelUniformBuffer;
         // inline static std::vector<vk::DeviceMemory> modelUniformBufferMemory;
 
@@ -160,6 +163,7 @@ class Volcano
         static stbi_uc* loadTextureFile(const char* filename, int& width, int& height, vk::DeviceSize& imageSize);
         static int createTextureImage(const char* filename);
         static int createTexture(const char* filename);
+        static void createTextureSampler();
 
         static void transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 #ifdef DEBUG

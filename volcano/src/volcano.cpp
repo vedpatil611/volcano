@@ -82,7 +82,7 @@ void Volcano::init(Window* window)
     Volcano::createFramebuffers();
     Volcano::createCommandPool();
  
-    int tex = Volcano::createTextureImage("brick.png");
+    int tex = Volcano::createTexture("brick.png");
 
     mvp.proj = glm::perspective(glm::radians(45.0f), (float) Volcano::swapChainExtent.width / (float) Volcano::swapChainExtent.height, 0.1f, 100.0f);
     mvp.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -108,6 +108,7 @@ void Volcano::init(Window* window)
     meshList[0]->setModel(meshModel);*/
 
     Volcano::createCommandBuffer();
+    Volcano::createTextureSampler();
     //Volcano::allocateDynamicBufferTransferSpace();
     Volcano::createUniformBuffer();
     Volcano::createDescriptorPool();
@@ -120,6 +121,8 @@ void Volcano::destroy()
     Volcano::device->waitIdle();
 
     //_aligned_free(modelTransferSpace);
+
+    Volcano::device->destroySampler(textureSampler);
 
     for(int i = 0; i < MAX_FRAME_DRAWS; ++i)
     {
@@ -281,6 +284,8 @@ void Volcano::pickPhysicalDevice()
 
 bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
 {
+    vk::PhysicalDeviceFeatures deviceFeatures = physicalDevice.getFeatures();
+
     auto indices = findQueueFamily(physicalDevice);
 
     bool extensionSupport = checkDeviceExtensionsSupport(physicalDevice);
@@ -292,7 +297,7 @@ bool Volcano::isDeviceSuitable(const vk::PhysicalDevice& physicalDevice)
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionSupport && swapChainAdequate;
+    return indices.isComplete() && extensionSupport && swapChainAdequate && deviceFeatures.samplerAnisotropy;
 }
 
 QueueFamilyIndicies Volcano::findQueueFamily(const vk::PhysicalDevice& physicalDevice)
@@ -355,6 +360,8 @@ void Volcano::createLogicalDevice()
     }
 
     auto deviceFeature = vk::PhysicalDeviceFeatures();
+    deviceFeature.samplerAnisotropy = VK_TRUE;                      // enable anisotropy feature
+
     auto createInfo = vk::DeviceCreateInfo(
         vk::DeviceCreateFlags(),
         static_cast<uint32_t>(queueCreateInfos.size()),
@@ -1591,6 +1598,33 @@ int Volcano::createTexture(const char* filename)
 
     // Todo: Create descriptor set later
     return 0;
+}
+
+void Volcano::createTextureSampler()
+{
+    vk::SamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.minFilter = vk::Filter::eLinear;
+    samplerCreateInfo.magFilter = vk::Filter::eLinear;
+    samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+    samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+    samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+    samplerCreateInfo.borderColor = vk::BorderColor::eIntOpaqueBlack;               // Border beyond texture (only for clam mode)
+    samplerCreateInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerCreateInfo.mipmapMode = vk::SamplerMipmapMode::eLinear;
+    samplerCreateInfo.mipLodBias = 0.0f;
+    samplerCreateInfo.minLod = 0.0f;                                                // min lod to pick mip level
+    samplerCreateInfo.maxLod = 0.0f;                                                // max lod to pick mip level
+    samplerCreateInfo.anisotropyEnable = VK_TRUE;
+    samplerCreateInfo.maxAnisotropy = 16;                                           // anisotropy sample level
+
+    try
+    {
+        Volcano::textureSampler = Volcano::device->createSampler(samplerCreateInfo);
+    }
+    catch (vk::SystemError& e)
+    {
+        throw std::runtime_error(e.what());
+    }
 }
 
 void Volcano::transitionImageLayout(vk::Queue queue, vk::CommandPool commandPool, vk::Image image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout)
